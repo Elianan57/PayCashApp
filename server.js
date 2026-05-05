@@ -325,15 +325,17 @@ app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'))
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
-// --- Payment Invoice Page (Proxy Polapine) ---
-app.get('/pay/invoice/:invoiceId', async (req, res) => {
+// --- Payment Invoice Page ---
+app.get('/pay/invoice/:invoiceId', (_req, res) => {
+  res.sendFile(__dirname + '/public/pay-invoice.html');
+});
+
+// --- Proxy Polapine Payment Page ---
+app.get('/proxy-payment/:invoiceId', async (req, res) => {
   try {
     const { invoiceId } = req.params;
-
-    // Determine payment method from query param (default: ecashapp3)
     const paymentMethod = req.query.method || 'ecashapp3';
 
-    // Fetch Polapine's payment page
     const polapineUrl = `https://pay.polapine.com/${paymentMethod}/${invoiceId}`;
     console.log(`🔄 Proxying payment page: ${polapineUrl}`);
 
@@ -345,24 +347,14 @@ app.get('/pay/invoice/:invoiceId', async (req, res) => {
     });
 
     let html = response.data;
-
-    // Rewrite all asset URLs to load from Polapine
     const polapineBase = 'https://pay.polapine.com';
 
-    // Fix relative URLs in href and src attributes
     html = html.replace(/href="\/(?!\/)/g, `href="${polapineBase}/`);
     html = html.replace(/src="\/(?!\/)/g, `src="${polapineBase}/`);
-
-    // Fix protocol-relative URLs
     html = html.replace(/href="\/\//g, 'href="https://');
     html = html.replace(/src="\/\//g, 'src="https://');
-
-    // Fix URLs in style attributes and inline CSS
     html = html.replace(/url\(["']?\/(?!\/)/g, `url('${polapineBase}/`);
 
-    // Don't add base tag - it violates CSP. URL rewriting above is sufficient.
-
-    // Allow Polapine resources to load
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('X-Frame-Options', 'SAMEORIGIN');
     res.set('Content-Security-Policy',

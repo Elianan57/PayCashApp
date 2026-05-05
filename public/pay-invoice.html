@@ -381,8 +381,8 @@
                     document.getElementById('loadingState').style.display = 'none';
                     document.getElementById('paymentCard').style.display = 'block';
 
-                    // Load proxied Polapine page in iframe (served from our domain)
-                    const proxyUrl = `/pay/invoice/${invoiceId}?method=${paymentMethod}`;
+                    // Load proxied Polapine page in iframe
+                    const proxyUrl = `/proxy-payment/${invoiceId}?method=${paymentMethod}`;
                     console.log('✅ Sending proxy URL to server.js:', proxyUrl);
                     console.log('✅ Server will fetch from:', `https://pay.polapine.com/${paymentMethod}/${invoiceId}`);
                     document.getElementById('paymentFrame').src = proxyUrl;
