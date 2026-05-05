@@ -337,10 +337,21 @@ app.get('/pay/invoice/:invoiceId', (req, res, next) => {
   })(req, res, next);
 });
 
-// --- Proxy API calls from Polapine page ---
-app.use('/api/', proxy('https://pay.polapine.com', {
-  proxyReqPathResolver: (req) => req.url
-}));
+// --- Proxy all Polapine assets and API calls ---
+app.use((req, res, next) => {
+  // Don't proxy our own API routes
+  if (req.path.startsWith('/api/create-invoice') ||
+      req.path.startsWith('/api/get-invoice') ||
+      req.path.startsWith('/api/check-payment') ||
+      req.path.startsWith('/webhook')) {
+    return next();
+  }
+
+  // Proxy everything else to Polapine
+  proxy('https://pay.polapine.com', {
+    proxyReqPathResolver: (req) => req.url
+  })(req, res, next);
+});
 
 
 // --- Static Pages ---
