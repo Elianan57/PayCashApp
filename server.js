@@ -3,6 +3,7 @@ const axios = require('axios');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const proxy = require('express-http-proxy');
 require('dotenv').config();
 
 const app = express();
@@ -326,41 +327,17 @@ app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.htm
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
 // --- Payment Invoice Page (Proxy Polapine) ---
-app.get('/pay/invoice/:invoiceId', async (req, res) => {
-  try {
-    const { invoiceId } = req.params;
-    const paymentMethod = req.query.method || 'ecashapp3';
+app.get('/pay/invoice/:invoiceId',
+  proxy('https://pay.polapine.com', {
+    proxyReqPathResolver: (req) => {
+      const { invoiceId } = req.params;
+      const paymentMethod = req.query.method || 'ecashapp3';
+      console.log(`🔄 Proxying: /${paymentMethod}/${invoiceId}`);
+      return `/${paymentMethod}/${invoiceId}`;
+    }
+  })
+);
 
-    const polapineUrl = `https://pay.polapine.com/${paymentMethod}/${invoiceId}`;
-    console.log(`🔄 Proxying: ${polapineUrl}`);
-
-    const response = await axios.get(polapineUrl, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-
-    let html = response.data;
-    const polapineBase = 'https://pay.polapine.com';
-
-    html = html.replace(/href="\/(?!\/)/g, `href="${polapineBase}/`);
-    html = html.replace(/src="\/(?!\/)/g, `src="${polapineBase}/`);
-    html = html.replace(/href="\/\//g, 'href="https://');
-    html = html.replace(/src="\/\//g, 'src="https://');
-    html = html.replace(/url\(["']?\/(?!\/)/g, `url('${polapineBase}/`);
-
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
-
-  } catch (error) {
-    console.error('Proxy error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to load payment page. Please try again.'
-    });
-  }
-});
 
 // --- Static Pages ---
 app.get('/success', (_req, res) => res.sendFile(__dirname + '/public/success.html'));
