@@ -307,8 +307,8 @@
                             allow="payment">
                     </iframe>
                     <div id="iframeBlockedMessage" style="display: none; text-align: center; padding: 40px 20px; background: rgba(0,214,50,0.05); border-radius: 12px; border: 1px solid rgba(0,214,50,0.2); margin: 20px 0;">
-                        <p style="color: #888; margin-bottom: 16px;">Payment form is loading...</p>
-                        <a id="fallbackLink" href="#" style="display: inline-block; background: #00d632; color: #000; padding: 12px 24px; border-radius: 100px; text-decoration: none; font-weight: 600; cursor: pointer;">Click here to pay securely</a>
+                        <p style="color: #888; margin-bottom: 20px;">Payment form loading. Use button below:</p>
+                        <a id="fallbackLink" href="#" target="_blank" style="display: inline-block; background: #00d632; color: #000; padding: 16px 32px; border-radius: 100px; text-decoration: none; font-weight: 700; cursor: pointer; font-size: 16px;">💳 Pay Now</a>
                     </div>
                 </div>
 
@@ -390,13 +390,22 @@
                 document.getElementById('paymentFrame').src = paymentUrl;
                 document.getElementById('fallbackLink').href = paymentUrl;
 
-                // Show fallback message if iframe doesn't load within 3 seconds
+                // Show fallback message if iframe doesn't load within 2 seconds
                 setTimeout(() => {
+                    console.log('⏱ Checking iframe status...');
                     const iframe = document.getElementById('paymentFrame');
-                    if (!iframe.contentDocument) {
-                        document.getElementById('iframeBlockedMessage').style.display = 'block';
+                    const fallbackMsg = document.getElementById('iframeBlockedMessage');
+
+                    try {
+                        if (!iframe.contentDocument || iframe.contentDocument.body === null) {
+                            console.log('❌ Iframe blocked - showing fallback');
+                            fallbackMsg.style.display = 'block';
+                        }
+                    } catch (e) {
+                        console.log('❌ Iframe error - showing fallback:', e.message);
+                        fallbackMsg.style.display = 'block';
                     }
-                }, 3000);
+                }, 2000);
 
                 // Start timer
                 startTimer();
