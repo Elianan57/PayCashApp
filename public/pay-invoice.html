@@ -385,10 +385,14 @@
                 expiresAt = new Date(Date.now() + 3600000);
 
                 // Load Polapine payment form in iframe
-                const paymentUrl = `https://pay.polapine.com/pay/@${brandSlug}/${invoiceId}`;
-                console.log('✅ Loading payment URL:', paymentUrl);
-                document.getElementById('paymentFrame').src = paymentUrl;
-                document.getElementById('fallbackLink').href = paymentUrl;
+                const paymentMethod = data?.payment_method || 'ecashapp';
+                const iframeUrl = `https://pay.polapine.com/${paymentMethod}/${invoiceId}`;
+                const fallbackUrl = data?.urls?.payment_page || iframeUrl;
+
+                console.log('✅ Loading iframe URL:', iframeUrl);
+                console.log('✅ Fallback URL:', fallbackUrl);
+                document.getElementById('paymentFrame').src = iframeUrl;
+                document.getElementById('fallbackLink').href = fallbackUrl;
 
                 // Show fallback message if iframe doesn't load within 2 seconds
                 setTimeout(() => {
