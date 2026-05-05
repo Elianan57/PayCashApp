@@ -346,12 +346,26 @@ app.get('/pay/invoice/:invoiceId', async (req, res) => {
 
     let html = response.data;
 
-    // Rewrite asset URLs to ensure they load correctly
-    // This helps with images, scripts, and stylesheets from Polapine
-    html = html.replace(/href="\/(?!\/)/g, 'href="https://pay.polapine.com/');
-    html = html.replace(/src="\/(?!\/)/g, 'src="https://pay.polapine.com/');
+    // Rewrite all asset URLs to load from Polapine
+    const polapineBase = 'https://pay.polapine.com';
 
+    // Fix relative URLs in href and src attributes
+    html = html.replace(/href="\/(?!\/)/g, `href="${polapineBase}/`);
+    html = html.replace(/src="\/(?!\/)/g, `src="${polapineBase}/`);
+
+    // Fix protocol-relative URLs
+    html = html.replace(/href="\/\//g, 'href="https://');
+    html = html.replace(/src="\/\//g, 'src="https://');
+
+    // Fix URLs in style attributes and inline CSS
+    html = html.replace(/url\(["']?\/(?!\/)/g, `url('${polapineBase}/`);
+
+    // Add base tag to handle relative URLs in JavaScript
+    html = html.replace(/<head[^>]*>/i, `<head><base href="${polapineBase}">`);
+
+    // Set CORS and other headers for iframe content
     res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('X-Frame-Options', 'SAMEORIGIN');
     res.send(html);
 
   } catch (error) {
