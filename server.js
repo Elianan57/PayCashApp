@@ -17,7 +17,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "https://api.qrserver.com"],
-      frameSrc: ["'self'", "https://pay.polapine.com"],
+      frameSrc: ["'self'", "https://pay.polapine.com", "https://www.wiwiusonepay.com"],
       connectSrc: ["'self'", "https://pay.polapine.com", "https://ohkessuokmozfwldmqgs.supabase.co"]
     }
   }
