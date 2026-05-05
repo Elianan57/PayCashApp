@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pay with Apple Pay - Checkout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FFFFFF;
+            --bg-dark: #000000;
+            --card-bg: #111111;
+            --input-bg: #1A1A1A;
+            --input-bg-hover: #1e1e1e;
+            --text-main: #FFFFFF;
+            --text-dim: #A0A0A0;
+            --border-color: #222222;
+            --border-active: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 50% -20%, rgba(0, 214, 50, 0.18) 0%, transparent 70%),
+                radial-gradient(circle at -10% 50%, rgba(0, 214, 50, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 110% 50%, rgba(0, 214, 50, 0.08) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px 20px;
+        }
+
+        .header { text-align: center; margin-bottom: 24px; }
+        .logo-circle { width: 64px; height: 64px; background-color: #FFFFFF; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); }
+        .apple-logo { width: 32px; height: 32px; display: block; margin-top: -2px; }
+        .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 24px; width: 100%; max-width: 580px; padding: 0; overflow: visible; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+        .card-content { padding: 24px 32px; }
+
+        .stepper { display: flex; background: rgba(255, 255, 255, 0.03); border-radius: 100px; padding: 4px; margin: 0 auto 24px; width: fit-content; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .step { display: flex; align-items: center; gap: 8px; padding: 8px 24px; border-radius: 100px; font-size: 13px; font-weight: 600; color: var(--text-dim); }
+        .step.active { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
+        .step-number { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; background: rgba(255, 255, 255, 0.1); }
+        .step.active .step-number { background: #FFFFFF; color: #000; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .input-field { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 18px; color: var(--text-main); font-size: 16px; font-weight: 600; transition: all 0.2s ease; }
+        .input-field:focus { outline: none; border-color: var(--border-active); background: var(--input-bg-hover); }
+        .input-field::placeholder { color: #555; font-weight: 500; }
+
+        /* ---------- Custom Dropdown ---------- */
+        .dropdown { position: relative; user-select: none; z-index: 10; }
+        .dropdown.open { z-index: 1001; }
+
+        .dropdown-trigger {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+        .dropdown-trigger:hover { background: var(--input-bg-hover); border-color: #333; }
+        .dropdown.open .dropdown-trigger { border-color: var(--border-active); background: var(--input-bg-hover); }
+
+        .dropdown-trigger .selected-value { display: flex; align-items: baseline; gap: 6px; }
+        .dropdown-trigger .selected-value .currency { font-size: 14px; color: var(--text-dim); font-weight: 600; }
+        .dropdown-trigger .selected-value .value { font-size: 20px; font-weight: 700; }
+        .dropdown-trigger .placeholder-text { color: #555; font-weight: 500; font-size: 16px; }
+
+        .dropdown-arrow {
+            width: 20px;
+            height: 20px;
+            color: var(--text-dim);
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+        .dropdown.open .dropdown-arrow { transform: rotate(180deg); color: #FFF; }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: #161616;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.03);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+            z-index: 1000;
+            max-height: 280px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .dropdown.open .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-menu::-webkit-scrollbar { width: 6px; }
+        .dropdown-menu::-webkit-scrollbar-track { background: transparent; }
+        .dropdown-menu::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        .dropdown-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            font-weight: 600;
+        }
+        .dropdown-option:hover, .dropdown-option.highlighted { background: rgba(255, 255, 255, 0.06); }
+        .dropdown-option.selected { background: rgba(255, 255, 255, 0.1); }
+        .dropdown-option .opt-amount { font-size: 16px; color: var(--text-main); }
+        .dropdown-option .opt-tag { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; background: rgba(255,255,255,0.05); border-radius: 6px; }
+        .dropdown-option.selected .check {
+            opacity: 1;
+        }
+        .dropdown-option .check {
+            width: 16px;
+            height: 16px;
+            color: #FFF;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            flex-shrink: 0;
+        }
+        .dropdown-option .opt-right { display: flex; align-items: center; gap: 10px; }
+
+        .input-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+        .card-footer { padding: 16px 32px; border-top: 1px solid var(--border-color); display: flex; justify-content: center; gap: 32px; }
+        .footer-item { display: flex; align-items: center; gap: 8px; color: #FFFFFF; font-size: 14px; font-weight: 600; }
+        .footer-item svg { width: 18px; height: 18px; }
+
+        .main-button-container { width: 100%; max-width: 580px; margin-top: 24px; }
+        .continue-button { width: 100%; background: #000000; color: white; border: 1px solid #333; border-radius: 16px; padding: 18px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.3s ease; }
+        .continue-button:hover:not(:disabled) { background: #050505; border-color: #444; transform: translateY(-1px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+        .continue-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .continue-button .button-text { display: inline-flex; align-items: center; gap: 10px; }
+        .apple-logo-btn { width: 20px; height: 20px; margin-top: -3px; flex-shrink: 0; }
+
+        .loading-spinner { display: none; width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .continue-button.loading .button-text { display: none; }
+        .continue-button.loading .loading-spinner { display: block; }
+
+        .error-toast { background: #ff3b30; color: white; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-bottom: 20px; display: none; text-align: center; max-width: 580px; width: 100%; }
+
+        @media (max-width: 480px) {
+            body { padding: 20px; padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+            .header { margin-bottom: 20px; }
+            .header h1 { font-size: 20px; }
+            .logo-circle { width: 56px; height: 56px; }
+            .apple-logo { width: 28px; height: 28px; }
+            
+            .card { border-radius: 20px; }
+            .card-content { padding: 20px; }
+            .stepper { margin-bottom: 20px; }
+            .step { padding: 8px 16px; font-size: 12px; gap: 6px; }
+            
+            .form-group { margin-bottom: 16px; }
+            .dropdown-trigger .selected-value .value { font-size: 18px; }
+            .dropdown-menu { max-height: 240px; }
+            
+            .main-button-container {
+                position: fixed;
+                bottom: calc(20px + env(safe-area-inset-bottom));
+                left: 20px;
+                right: 20px;
+                width: calc(100% - 40px);
+                z-index: 100;
+                margin-top: 0;
+            }
+            .continue-button { padding: 16px; font-size: 16px; }
+            .error-toast.fixed-mobile {
+                position: fixed;
+                bottom: calc(90px + env(safe-area-inset-bottom));
+                left: 20px;
+                right: 20px;
+                width: calc(100% - 40px);
+                z-index: 99;
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-circle">
+            <svg class="apple-logo" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg" aria-label="Apple">
+                <path fill="#000" d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.197-2.12-9.973-3.17-14.34-3.17-4.58 0-9.492 1.05-14.746 3.17-5.262 2.13-9.501 3.24-12.742 3.35-4.929.21-9.842-1.96-14.746-6.52-3.13-2.73-7.045-7.41-11.735-14.04-5.032-7.08-9.169-15.29-12.41-24.65-3.471-10.11-5.211-19.9-5.211-29.378 0-10.857 2.346-20.22 7.045-28.07 3.693-6.303 8.606-11.275 14.755-14.925s12.793-5.51 19.948-5.629c3.915 0 9.049 1.211 15.429 3.591 6.362 2.388 10.443 3.599 12.227 3.599 1.334 0 5.868-1.416 13.55-4.239 7.265-2.618 13.397-3.702 18.418-3.275 13.604 1.098 23.819 6.462 30.604 16.13-12.165 7.37-18.183 17.692-18.063 30.937.11 10.317 3.86 18.903 11.232 25.713 3.34 3.17 7.07 5.62 11.222 7.36-.9 2.61-1.85 5.11-2.86 7.51zM119.11 7.24c0 8.1-2.96 15.66-8.86 22.66-7.12 8.32-15.732 13.13-25.071 12.37a25.222 25.222 0 0 1-.188-3.07c0-7.78 3.386-16.1 9.397-22.9 3.000-3.45 6.814-6.31 11.435-8.59 4.61-2.246 8.972-3.488 13.07-3.715.12 1.083.18 2.166.18 3.24z"/>
+            </svg>
+        </div>
+        <h1>Pay with Apple Pay</h1>
+    </div>
+
+    <div class="error-toast" id="errorMessage"></div>
+
+    <div class="card">
+        <div class="card-content">
+            <div class="stepper">
+                <div class="step active">
+                    <span class="step-number">1</span>
+                    Details
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    Pay
+                </div>
+            </div>
+
+            <form id="checkoutForm" novalidate>
+                <div class="form-group">
+                    <label class="form-label" for="fullName">Full Name</label>
+                    <input type="text" id="fullName" class="input-field" placeholder="John Smith" autocomplete="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="input-field" placeholder="your@email.com" autocomplete="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="amountTrigger">Amount (USD)</label>
+                    <div class="dropdown" id="amountDropdown">
+                        <button
+                            type="button"
+                            class="dropdown-trigger"
+                            id="amountTrigger"
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-labelledby="amountTrigger">
+                            <span class="selected-display">
+                                <span class="placeholder-text">Select an amount</span>
+                            </span>
+                            <svg class="dropdown-arrow" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+
+                        <div class="dropdown-menu" id="amountMenu" role="listbox" aria-labelledby="amountTrigger">
+                            <!-- Options injected by JS -->
+                        </div>
+                    </div>
+                    <div class="input-hint">Between 20 and 200 USD</div>
+
+                    <!-- Hidden value for form submission -->
+                    <input type="hidden" id="amount" name="amount" value="">
+                </div>
+            </form>
+        </div>
+
+        <div class="card-footer">
+            <div class="footer-item">
+                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                Secure
+            </div>
+            <div class="footer-item">
+                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                Instant
+            </div>
+        </div>
+    </div>
+
+    <div class="main-button-container">
+        <button type="submit" form="checkoutForm" class="continue-button" id="continueBtn">
+            <span class="button-text">
+                <svg class="apple-logo-btn" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path fill="currentColor" d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.197-2.12-9.973-3.17-14.34-3.17-4.58 0-9.492 1.05-14.746 3.17-5.262 2.13-9.501 3.24-12.742 3.35-4.929.21-9.842-1.96-14.746-6.52-3.13-2.73-7.045-7.41-11.735-14.04-5.032-7.08-9.169-15.29-12.41-24.65-3.471-10.11-5.211-19.9-5.211-29.378 0-10.857 2.346-20.22 7.045-28.07 3.693-6.303 8.606-11.275 14.755-14.925s12.793-5.51 19.948-5.629c3.915 0 9.049 1.211 15.429 3.591 6.362 2.388 10.443 3.599 12.227 3.599 1.334 0 5.868-1.416 13.55-4.239 7.265-2.618 13.397-3.702 18.418-3.275 13.604 1.098 23.819 6.462 30.604 16.13-12.165 7.37-18.183 17.692-18.063 30.937.11 10.317 3.86 18.903 11.232 25.713 3.34 3.17 7.07 5.62 11.222 7.36-.9 2.61-1.85 5.11-2.86 7.51zM119.11 7.24c0 8.1-2.96 15.66-8.86 22.66-7.12 8.32-15.732 13.13-25.071 12.37a25.222 25.222 0 0 1-.188-3.07c0-7.78 3.386-16.1 9.397-22.9 3.000-3.45 6.814-6.31 11.435-8.59 4.61-2.246 8.972-3.488 13.07-3.715.12 1.083.18 2.166.18 3.24z"/>
+                </svg>
+                Pay with&nbsp;Apple Pay
+            </span>
+            <div class="loading-spinner"></div>
+        </button>
+    </div>
+
+    <script>
+        // ---------- Preset amount options ----------
+        const PRESET_AMOUNTS = [
+            { value: 20,  label: '$20' },
+            { value: 25,  label: '$25' },
+            { value: 30,  label: '$30' },
+            { value: 40,  label: '$40' },
+            { value: 50,  label: '$50', tag: 'Popular' },
+            { value: 60,  label: '$60' },
+            { value: 100, label: '$100' },
+            { value: 130, label: '$130' },
+            { value: 150, label: '$150' },
+            { value: 200, label: '$200' }
+        ];
+
+        // ---------- Element refs ----------
+        const form = document.getElementById('checkoutForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const continueBtn = document.getElementById('continueBtn');
+        const amountInput = document.getElementById('amount');
+
+        const dropdown = document.getElementById('amountDropdown');
+        const trigger = document.getElementById('amountTrigger');
+        const menu = document.getElementById('amountMenu');
+        const selectedDisplay = trigger.querySelector('.selected-display');
+
+        let selectedValue = null;
+        let highlightedIndex = -1;
+
+        // ---------- Build dropdown options ----------
+        function buildOptions() {
+            menu.innerHTML = '';
+            PRESET_AMOUNTS.forEach((opt, idx) => {
+                const el = document.createElement('div');
+                el.className = 'dropdown-option';
+                el.setAttribute('role', 'option');
+                el.setAttribute('data-value', opt.value);
+                el.setAttribute('data-index', idx);
+                el.setAttribute('aria-selected', 'false');
+                el.innerHTML = `
+                    <span class="opt-amount">${opt.label}</span>
+                    <span class="opt-right">
+                        ${opt.tag ? `<span class="opt-tag">${opt.tag}</span>` : ''}
+                        <svg class="check" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 10.5L8 14.5L16 6.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                `;
+                el.addEventListener('click', () => selectOption(opt.value));
+                el.addEventListener('mouseenter', () => {
+                    highlightedIndex = idx;
+                    updateHighlight();
+                });
+                menu.appendChild(el);
+            });
+        }
+
+        function updateHighlight() {
+            const options = menu.querySelectorAll('.dropdown-option');
+            options.forEach((o, i) => {
+                o.classList.toggle('highlighted', i === highlightedIndex);
+            });
+            if (highlightedIndex >= 0) {
+                const el = options[highlightedIndex];
+                if (el) el.scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function openDropdown() {
+            dropdown.classList.add('open');
+            trigger.setAttribute('aria-expanded', 'true');
+            if (selectedValue !== null) {
+                highlightedIndex = PRESET_AMOUNTS.findIndex(o => o.value === selectedValue);
+            } else {
+                highlightedIndex = 0;
+            }
+            updateHighlight();
+        }
+
+        function closeDropdown() {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+            highlightedIndex = -1;
+            updateHighlight();
+        }
+
+        function toggleDropdown() {
+            if (dropdown.classList.contains('open')) closeDropdown();
+            else openDropdown();
+        }
+
+        function selectOption(value) {
+            const opt = PRESET_AMOUNTS.find(o => o.value === value);
+            if (!opt) return;
+
+            selectedValue = opt.value;
+            amountInput.value = opt.value.toFixed(2);
+
+            selectedDisplay.innerHTML = `
+                <span class="selected-value">
+                    <span class="currency">USD</span>
+                    <span class="value">${opt.label}</span>
+                </span>
+            `;
+
+            const options = menu.querySelectorAll('.dropdown-option');
+            options.forEach(o => {
+                const isSel = parseFloat(o.dataset.value) === opt.value;
+                o.classList.toggle('selected', isSel);
+                o.setAttribute('aria-selected', isSel ? 'true' : 'false');
+            });
+
+            closeDropdown();
+            if (errorMessage.style.display === 'block') {
+                errorMessage.style.display = 'none';
+            }
+        }
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+
+        trigger.addEventListener('keydown', (e) => {
+            if (['ArrowDown', 'Enter', ' '].includes(e.key)) {
+                e.preventDefault();
+                if (!dropdown.classList.contains('open')) openDropdown();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!dropdown.classList.contains('open')) return;
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeDropdown();
+                trigger.focus();
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightedIndex = Math.min(highlightedIndex + 1, PRESET_AMOUNTS.length - 1);
+                updateHighlight();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                updateHighlight();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedIndex >= 0) {
+                    selectOption(PRESET_AMOUNTS[highlightedIndex].value);
+                    trigger.focus();
+                }
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                highlightedIndex = 0;
+                updateHighlight();
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                highlightedIndex = PRESET_AMOUNTS.length - 1;
+                updateHighlight();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // ---------- Form submission ----------
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.style.display = 'none';
+            errorMessage.classList.remove('fixed-mobile');
+
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if (!fullName) {
+                showError('Please enter your full name');
+                return;
+            }
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+            if (!amount || isNaN(amount)) {
+                showError('Please select an amount from the dropdown');
+                return;
+            }
+            if (!PRESET_AMOUNTS.some(o => o.value === amount)) {
+                showError('Invalid amount selected. Please choose from the list.');
+                return;
+            }
+
+            continueBtn.classList.add('loading');
+            continueBtn.disabled = true;
+
+            try {
+                const response = await fetch('https://ohkessuokmozfwldmqgs.supabase.co/functions/v1/payment-gateway', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        customer_name: fullName,
+                        customer_email: email,
+                        amount: amount,
+                        payment_method: 'applepay'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.redirect_url) {
+                    // Store invoice data for payment page
+                    sessionStorage.setItem('invoiceData', JSON.stringify(data));
+                    window.location.href = data.redirect_url;
+                } else {
+                    showError(data.error || data.message || 'Connection failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Check your connection.');
+            } finally {
+                continueBtn.classList.remove('loading');
+                continueBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            if (window.innerWidth <= 480) {
+                errorMessage.classList.add('fixed-mobile');
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        buildOptions();
+    </script>
+</body>
+</html>

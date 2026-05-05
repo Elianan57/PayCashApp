@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pay CashApp - Invoice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: #000000;
+            color: #FFFFFF;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: #0d0d0d;
+            border: 1px solid #1f1f1f;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #00d632 0%, #00ff41 100%);
+            padding: 24px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .content {
+            padding: 32px 24px;
+        }
+
+        .timer-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 32px;
+        }
+
+        .timer-icon {
+            font-size: 18px;
+            color: #ffc107;
+        }
+
+        .timer-label {
+            color: #ffc107;
+            font-size: 12px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .timer-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffc107;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .amount-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .amount-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .amount-value {
+            font-size: 56px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .section-title {
+            font-size: 12px;
+            color: #00d632;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        #qrcode {
+            display: inline-block;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .qr-hint {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .pay-button {
+            width: 100%;
+            background: #00d632;
+            color: #000;
+            border: none;
+            border-radius: 100px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 214, 50, 0.3);
+        }
+
+        .payment-methods {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .payment-method {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            font-weight: 600;
+            color: #888;
+        }
+
+        .payment-method:hover {
+            border-color: #00d632;
+            color: #00d632;
+            background: rgba(0, 214, 50, 0.05);
+        }
+
+        .payment-method-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .invoice-details {
+            background: #1a1a1a;
+            border-top: 1px solid #2a2a2a;
+            padding: 24px;
+            margin: 0 -24px -32px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: #888;
+        }
+
+        .detail-value {
+            color: #00d632;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 6px;
+            font-size: 11px;
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 32px;
+            color: #888;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 214, 50, 0.1);
+            border-top: 3px solid #00d632;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 12px;
+            color: #00d632;
+        }
+
+        .error-message {
+            background: #ff3b30;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .content {
+                padding: 20px 16px;
+            }
+
+            .amount-value {
+                font-size: 40px;
+            }
+
+            #qrcode {
+                padding: 12px;
+            }
+
+            .payment-methods {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .payment-method {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="card" id="paymentCard" style="display: none;">
+            <div class="header">Pay CashApp</div>
+
+            <div class="content">
+                <div class="timer-section">
+                    <span class="timer-icon">⏱</span>
+                    <span class="timer-label">Time Remaining</span>
+                    <span class="timer-value" id="timerDisplay">--:--</span>
+                </div>
+
+                <div class="amount-section">
+                    <div class="amount-label">Amount to Pay</div>
+                    <div class="amount-value" id="amountDisplay">$0.00</div>
+                </div>
+
+                <!-- Embedded Polapine Payment Form -->
+                <div style="position: relative; margin: 20px 0;">
+                    <iframe id="paymentFrame"
+                            style="width: 100%; height: 500px; border: none; border-radius: 12px;"
+                            allow="payment">
+                    </iframe>
+                    <div id="iframeBlockedMessage" style="display: none; text-align: center; padding: 40px 20px; background: rgba(0,214,50,0.05); border-radius: 12px; border: 1px solid rgba(0,214,50,0.2); margin: 20px 0;">
+                        <p style="color: #888; margin-bottom: 16px;">Payment form is loading...</p>
+                        <a id="fallbackLink" href="#" style="display: inline-block; background: #00d632; color: #000; padding: 12px 24px; border-radius: 100px; text-decoration: none; font-weight: 600; cursor: pointer;">Click here to pay securely</a>
+                    </div>
+                </div>
+
+                <div class="invoice-details">
+                    <div class="section-title">Invoice Details</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Invoice</span>
+                        <span class="detail-value" id="invoiceId">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">
+                            <span class="status-badge">● Awaiting Payment</span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Speed</span>
+                        <span class="detail-value">Instant</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingState">
+            <div class="spinner"></div>
+            <div>Loading payment details...</div>
+        </div>
+    </div>
+
+    <div class="footer">⚡ Powered by Cash App</div>
+
+    <script>
+        // Get invoice ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceId = window.location.pathname.split('/').pop();
+
+        let expiresAt = null;
+        let timerInterval = null;
+        let statusCheckInterval = null;
+        let paymentUrl = '';
+
+        // Initialize
+        async function init() {
+            try {
+                console.log('🔍 Invoice ID from URL:', invoiceId);
+
+                // Get invoice data from sessionStorage (set by checkout page)
+                const invoiceData = sessionStorage.getItem('invoiceData');
+                console.log('📦 SessionStorage data:', invoiceData);
+
+                let data = null;
+                let invoice = null;
+                let brandSlug = 'cashapppro'; // default
+                let amount = '0';
+
+                if (invoiceData) {
+                    // Use data from sessionStorage if available
+                    data = JSON.parse(invoiceData);
+                    invoice = data.invoice;
+                    amount = invoice.amount;
+                    brandSlug = data.payment_method === 'ecashapp3' ? 'CashApp2' : 'cashapppro';
+
+                    document.getElementById('amountDisplay').textContent = `$${amount.toFixed(2)}`;
+                    document.getElementById('invoiceId').textContent = invoice.invoice_id;
+                } else {
+                    // Fallback: construct payment URL from invoiceId only
+                    console.log('⚠️ No sessionStorage data, using fallback');
+                    // Try to determine brand from sessionStorage payment_method or default to ecashapp3
+                    brandSlug = 'CashApp2'; // default to Account 2
+                    document.getElementById('invoiceId').textContent = invoiceId;
+                }
+
+                // Calculate expiration time (1 hour from now)
+                expiresAt = new Date(Date.now() + 3600000);
+
+                // Load Polapine payment form in iframe
+                const paymentUrl = `https://pay.polapine.com/pay/@${brandSlug}/${invoiceId}`;
+                console.log('✅ Loading payment URL:', paymentUrl);
+                document.getElementById('paymentFrame').src = paymentUrl;
+                document.getElementById('fallbackLink').href = paymentUrl;
+
+                // Show fallback message if iframe doesn't load within 3 seconds
+                setTimeout(() => {
+                    const iframe = document.getElementById('paymentFrame');
+                    if (!iframe.contentDocument) {
+                        document.getElementById('iframeBlockedMessage').style.display = 'block';
+                    }
+                }, 3000);
+
+                // Start timer
+                startTimer();
+
+                // Start status polling
+                startStatusCheck();
+
+                // Show payment card
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('paymentCard').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to load payment details');
+            }
+        }
+
+        function generateQRCode(url) {
+            const qrcodeDiv = document.getElementById('qrcode');
+            qrcodeDiv.innerHTML = '';
+
+            // Use QR code API (no library needed)
+            const encodedUrl = encodeURIComponent(url);
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}`;
+
+            const img = document.createElement('img');
+            img.src = qrApiUrl;
+            img.style.borderRadius = '12px';
+            img.alt = 'Payment QR Code';
+            qrcodeDiv.appendChild(img);
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const now = new Date();
+            const diff = expiresAt - now;
+
+            if (diff <= 0) {
+                document.getElementById('timerDisplay').textContent = '00:00';
+                clearInterval(timerInterval);
+                showError('Invoice expired. Please create a new one.');
+                return;
+            }
+
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            document.getElementById('timerDisplay').textContent =
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function startStatusCheck() {
+            statusCheckInterval = setInterval(checkPaymentStatus, 3000);
+        }
+
+        async function checkPaymentStatus() {
+            try {
+                const response = await fetch(`/api/check-payment/${invoiceId}`);
+                const data = await response.json();
+
+                if (data.paid || data.status === 'completed') {
+                    clearInterval(statusCheckInterval);
+                    clearInterval(timerInterval);
+                    // Redirect to success
+                    window.location.href = '/success?invoice=' + invoiceId;
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Try to load QRCode library, but don't block if it fails
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js';
+        script.onerror = () => console.log('QRCode library failed to load');
+        document.head.appendChild(script);
+
+        // Start app immediately, QRCode optional
+        setTimeout(init, 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+
+> cashapp-checkout@1.0.0 start
+> node server.js
+
+[32m>>> Production server running on port 3050[0m
+>>> Mode: SANDBOX/DEV
+📊 Full Polapine Response (B): {
+  "success": false,
+  "timestamp": 1777884565,
+  "response_time_ms": 13.25,
+  "data": {
+    "error": "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    "code": 400
+  }
+}
+❌ Invoice ID not found. Response structure: {
+  success: false,
+  timestamp: 1777884565,
+  response_time_ms: 13.25,
+  data: {
+    error: "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    code: 400
+  }
+}
+Invoice Creation Error (B): Invoice ID missing from provider response. Got: {"success":false,"timestamp":1777884565,"response_time_ms":13.25,"data":{"error":"Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.","code":400}}
+📊 Full Polapine Response (B): {
+  "success": false,
+  "timestamp": 1777884694,
+  "response_time_ms": 12.88,
+  "data": {
+    "error": "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    "code": 400
+  }
+}
+❌ Invoice ID not found. Response structure: {
+  success: false,
+  timestamp: 1777884694,
+  response_time_ms: 12.88,
+  data: {
+    error: "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    code: 400
+  }
+}
+Invoice Creation Error (B): Invoice ID missing from provider response. Got: {"success":false,"timestamp":1777884694,"response_time_ms":12.88,"data":{"error":"Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.","code":400}}
+📊 Full Polapine Response (B): {
+  "success": false,
+  "timestamp": 1777884701,
+  "response_time_ms": 16.34,
+  "data": {
+    "error": "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    "code": 400
+  }
+}
+❌ Invoice ID not found. Response structure: {
+  success: false,
+  timestamp: 1777884701,
+  response_time_ms: 16.34,
+  data: {
+    error: "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    code: 400
+  }
+}
+Invoice Creation Error (B): Invoice ID missing from provider response. Got: {"success":false,"timestamp":1777884701,"response_time_ms":16.34,"data":{"error":"Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.","code":400}}
+📊 Full Polapine Response (B): {
+  "success": false,
+  "timestamp": 1777884758,
+  "response_time_ms": 14.46,
+  "data": {
+    "error": "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    "code": 400
+  }
+}
+❌ Invoice ID not found. Response structure: {
+  success: false,
+  timestamp: 1777884758,
+  response_time_ms: 14.46,
+  data: {
+    error: "Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.",
+    code: 400
+  }
+}
+Invoice Creation Error (B): Invoice ID missing from provider response. Got: {"success":false,"timestamp":1777884758,"response_time_ms":14.46,"data":{"error":"Brand slug '@CashApp' is already taken. Please use a different brand_slug or omit it to use your username.","code":400}}

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ngrok http *)",
+      "Bash(npm start *)",
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(curl -s http://localhost:3008/api/create-invoice -X POST -H \"Content-Type: application/json\" -d '{\"customer_name\":\"test\",\"customer_email\":\"test@test.com\",\"amount\":10}')",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3050 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; \"Port 3050 cleaned\")",
+      "Bash(taskkill /F /IM node.exe)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3050 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Start-Sleep -Seconds 2; Write-Host \"Port 3050 cleared\")",
+      "WebFetch(domain:pay-cash.app)"
+    ]
+  }
+}
