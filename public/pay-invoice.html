@@ -362,7 +362,9 @@
                 if (invoiceData) {
                     const data = JSON.parse(invoiceData);
                     const amount = data.invoice.amount;
-                    const paymentMethod = data.payment_method || 'ecashapp';
+                    const paymentMethod = data.payment_method || 'ecashapp3';
+
+                    console.log('💳 Payment method from Supabase:', paymentMethod);
 
                     // Display payment info while loading proxy
                     document.getElementById('amountDisplay').textContent = `$${amount.toFixed(2)}`;
@@ -381,7 +383,8 @@
 
                     // Load proxied Polapine page in iframe (served from our domain)
                     const proxyUrl = `/pay/invoice/${invoiceId}?method=${paymentMethod}`;
-                    console.log('✅ Loading proxied payment URL:', proxyUrl);
+                    console.log('✅ Sending proxy URL to server.js:', proxyUrl);
+                    console.log('✅ Server will fetch from:', `https://pay.polapine.com/${paymentMethod}/${invoiceId}`);
                     document.getElementById('paymentFrame').src = proxyUrl;
 
                     // Show fallback after 3 seconds if iframe fails
