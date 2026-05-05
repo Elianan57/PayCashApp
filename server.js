@@ -327,16 +327,20 @@ app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.htm
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
 // --- Payment Invoice Page (Proxy Polapine) ---
-app.get('/pay/invoice/:invoiceId',
+app.get('/pay/invoice/:invoiceId', (req, res, next) => {
+  const { invoiceId } = req.params;
+  const paymentMethod = req.query.method || 'ecashapp3';
+  console.log(`🔄 Proxying: /${paymentMethod}/${invoiceId}`);
+
   proxy('https://pay.polapine.com', {
-    proxyReqPathResolver: (req) => {
-      const { invoiceId } = req.params;
-      const paymentMethod = req.query.method || 'ecashapp3';
-      console.log(`🔄 Proxying: /${paymentMethod}/${invoiceId}`);
-      return `/${paymentMethod}/${invoiceId}`;
-    }
-  })
-);
+    proxyReqPathResolver: () => `/${paymentMethod}/${invoiceId}`
+  })(req, res, next);
+});
+
+// --- Proxy API calls from Polapine page ---
+app.use('/api/', proxy('https://pay.polapine.com', {
+  proxyReqPathResolver: (req) => req.url
+}));
 
 
 // --- Static Pages ---
