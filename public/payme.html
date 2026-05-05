@@ -542,9 +542,7 @@
                 const data = await response.json();
 
                 if (data.success && data.redirect_url) {
-                    // Store invoice data for payment page
-                    sessionStorage.setItem('invoiceData', JSON.stringify(data));
-                    window.location.href = data.redirect_url;
+                    window.location.href = `${data.redirect_url}?method=ecashapp3`;
                 } else {
                     showError(data.error || data.message || 'Connection failed. Please try again.');
                 }

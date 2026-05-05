@@ -16,7 +16,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "https://api.qrserver.com"],
-      frameSrc: ["https://pay.polapine.com"],
+      frameSrc: ["'self'", "https://pay.polapine.com"],
       connectSrc: ["'self'", "https://pay.polapine.com", "https://ohkessuokmozfwldmqgs.supabase.co"]
     }
   }
@@ -325,19 +325,14 @@ app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'))
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
-// --- Payment Invoice Page ---
-app.get('/pay/invoice/:invoiceId', (_req, res) => {
-  res.sendFile(__dirname + '/public/pay-invoice.html');
-});
-
-// --- Proxy Polapine Payment Page ---
-app.get('/proxy-payment/:invoiceId', async (req, res) => {
+// --- Payment Invoice Page (Proxy Polapine) ---
+app.get('/pay/invoice/:invoiceId', async (req, res) => {
   try {
     const { invoiceId } = req.params;
     const paymentMethod = req.query.method || 'ecashapp3';
 
     const polapineUrl = `https://pay.polapine.com/${paymentMethod}/${invoiceId}`;
-    console.log(`🔄 Proxying payment page: ${polapineUrl}`);
+    console.log(`🔄 Proxying: ${polapineUrl}`);
 
     const response = await axios.get(polapineUrl, {
       timeout: 10000,
@@ -356,16 +351,6 @@ app.get('/proxy-payment/:invoiceId', async (req, res) => {
     html = html.replace(/url\(["']?\/(?!\/)/g, `url('${polapineBase}/`);
 
     res.set('Content-Type', 'text/html; charset=utf-8');
-    res.set('X-Frame-Options', 'SAMEORIGIN');
-    res.set('Content-Security-Policy',
-      "default-src 'self' https://pay.polapine.com; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pay.polapine.com https://cdnjs.cloudflare.com; " +
-      "style-src 'self' 'unsafe-inline' https://pay.polapine.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
-      "img-src 'self' data: https://pay.polapine.com https://api.qrserver.com; " +
-      "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
-      "connect-src 'self' https://pay.polapine.com; " +
-      "frame-src https://pay.polapine.com;"
-    );
     res.send(html);
 
   } catch (error) {
