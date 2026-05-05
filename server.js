@@ -325,9 +325,42 @@ app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'))
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
-// --- Payment Invoice Page ---
-app.get('/pay/invoice/:invoiceId', (_req, res) => {
-  res.sendFile(__dirname + '/public/pay-invoice.html');
+// --- Payment Invoice Page (Proxy Polapine) ---
+app.get('/pay/invoice/:invoiceId', async (req, res) => {
+  try {
+    const { invoiceId } = req.params;
+
+    // Determine payment method from query param (default: ecashapp3)
+    const paymentMethod = req.query.method || 'ecashapp3';
+
+    // Fetch Polapine's payment page
+    const polapineUrl = `https://pay.polapine.com/${paymentMethod}/${invoiceId}`;
+    console.log(`🔄 Proxying payment page: ${polapineUrl}`);
+
+    const response = await axios.get(polapineUrl, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    let html = response.data;
+
+    // Rewrite asset URLs to ensure they load correctly
+    // This helps with images, scripts, and stylesheets from Polapine
+    html = html.replace(/href="\/(?!\/)/g, 'href="https://pay.polapine.com/');
+    html = html.replace(/src="\/(?!\/)/g, 'src="https://pay.polapine.com/');
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+
+  } catch (error) {
+    console.error('Proxy error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load payment page. Please try again.'
+    });
+  }
 });
 
 // --- Static Pages ---

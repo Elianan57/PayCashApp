@@ -359,67 +359,47 @@
                 const invoiceData = sessionStorage.getItem('invoiceData');
                 console.log('📦 SessionStorage data:', invoiceData);
 
-                let data = null;
-                let invoice = null;
-                let brandSlug = 'cashapppro'; // default
-                let amount = '0';
-
                 if (invoiceData) {
-                    // Use data from sessionStorage if available
-                    data = JSON.parse(invoiceData);
-                    invoice = data.invoice;
-                    amount = invoice.amount;
-                    brandSlug = data.payment_method === 'ecashapp3' ? 'CashApp2' : 'cashapppro';
+                    const data = JSON.parse(invoiceData);
+                    const amount = data.invoice.amount;
+                    const paymentMethod = data.payment_method || 'ecashapp';
 
+                    // Display payment info while loading proxy
                     document.getElementById('amountDisplay').textContent = `$${amount.toFixed(2)}`;
-                    document.getElementById('invoiceId').textContent = invoice.invoice_id;
-                } else {
-                    // Fallback: construct payment URL from invoiceId only
-                    console.log('⚠️ No sessionStorage data, using fallback');
-                    // Try to determine brand from sessionStorage payment_method or default to ecashapp3
-                    brandSlug = 'CashApp2'; // default to Account 2
-                    document.getElementById('invoiceId').textContent = invoiceId;
-                }
+                    document.getElementById('invoiceId').textContent = data.invoice.invoice_id;
 
-                // Calculate expiration time (1 hour from now)
-                expiresAt = new Date(Date.now() + 3600000);
+                    // Calculate expiration time
+                    expiresAt = new Date(Date.now() + 3600000);
 
-                // Load Polapine payment form in iframe
-                const paymentMethod = data?.payment_method || 'ecashapp';
-                const iframeUrl = `https://pay.polapine.com/${paymentMethod}/${invoiceId}`;
-                const fallbackUrl = data?.urls?.payment_page || iframeUrl;
+                    // Start timer and status polling
+                    startTimer();
+                    startStatusCheck();
 
-                console.log('✅ Loading iframe URL:', iframeUrl);
-                console.log('✅ Fallback URL:', fallbackUrl);
-                document.getElementById('paymentFrame').src = iframeUrl;
-                document.getElementById('fallbackLink').href = fallbackUrl;
+                    // Show payment card
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('paymentCard').style.display = 'block';
 
-                // Show fallback message if iframe doesn't load within 2 seconds
-                setTimeout(() => {
-                    console.log('⏱ Checking iframe status...');
-                    const iframe = document.getElementById('paymentFrame');
-                    const fallbackMsg = document.getElementById('iframeBlockedMessage');
+                    // Load proxied Polapine page in iframe (served from our domain)
+                    const proxyUrl = `/pay/invoice/${invoiceId}?method=${paymentMethod}`;
+                    console.log('✅ Loading proxied payment URL:', proxyUrl);
+                    document.getElementById('paymentFrame').src = proxyUrl;
 
-                    try {
-                        if (!iframe.contentDocument || iframe.contentDocument.body === null) {
-                            console.log('❌ Iframe blocked - showing fallback');
-                            fallbackMsg.style.display = 'block';
+                    // Show fallback after 3 seconds if iframe fails
+                    setTimeout(() => {
+                        const iframe = document.getElementById('paymentFrame');
+                        try {
+                            if (!iframe.contentDocument) {
+                                console.log('❌ Proxy failed - showing fallback');
+                                document.getElementById('iframeBlockedMessage').style.display = 'block';
+                                document.getElementById('fallbackLink').href = data.urls.payment_page;
+                            }
+                        } catch (e) {
+                            console.log('⚠️ Proxy iframe error:', e.message);
                         }
-                    } catch (e) {
-                        console.log('❌ Iframe error - showing fallback:', e.message);
-                        fallbackMsg.style.display = 'block';
-                    }
-                }, 2000);
-
-                // Start timer
-                startTimer();
-
-                // Start status polling
-                startStatusCheck();
-
-                // Show payment card
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('paymentCard').style.display = 'block';
+                    }, 3000);
+                } else {
+                    showError('Invoice data not found. Please try again.');
+                }
 
             } catch (error) {
                 console.error('Error:', error);
