@@ -360,12 +360,20 @@ app.get('/pay/invoice/:invoiceId', async (req, res) => {
     // Fix URLs in style attributes and inline CSS
     html = html.replace(/url\(["']?\/(?!\/)/g, `url('${polapineBase}/`);
 
-    // Add base tag to handle relative URLs in JavaScript
-    html = html.replace(/<head[^>]*>/i, `<head><base href="${polapineBase}">`);
+    // Don't add base tag - it violates CSP. URL rewriting above is sufficient.
 
-    // Set CORS and other headers for iframe content
+    // Allow Polapine resources to load
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('X-Frame-Options', 'SAMEORIGIN');
+    res.set('Content-Security-Policy',
+      "default-src 'self' https://pay.polapine.com; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pay.polapine.com https://cdnjs.cloudflare.com; " +
+      "style-src 'self' 'unsafe-inline' https://pay.polapine.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+      "img-src 'self' data: https://pay.polapine.com https://api.qrserver.com; " +
+      "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
+      "connect-src 'self' https://pay.polapine.com; " +
+      "frame-src https://pay.polapine.com;"
+    );
     res.send(html);
 
   } catch (error) {
