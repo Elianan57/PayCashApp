@@ -320,6 +320,11 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
   }
 });
 
+// --- Payment Checkout Pages ---
+app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'));
+app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
+app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
+
 // --- Payment Invoice Page ---
 app.get('/pay/invoice/:invoiceId', (_req, res) => {
   res.sendFile(__dirname + '/public/pay-invoice.html');
