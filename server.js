@@ -330,15 +330,80 @@ app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'))
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
-// --- Payment Invoice Page (Proxy Polapine) ---
-app.get('/pay/invoice/:invoiceId', (req, res, next) => {
-  const { invoiceId } = req.params;
-  const paymentMethod = req.query.method || 'ecashapp3';
-  console.log(`🔄 Proxying: /${paymentMethod}/${invoiceId}`);
+// --- OpenNode Payment Details ---
+app.get('/api/get-payment/:chargeId', async (req, res) => {
+  try {
+    const { chargeId } = req.params;
+    const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
+    const OPENNODE_API_URL = 'https://api.opennode.com/v1';
 
-  proxy('https://pay.polapine.com', {
-    proxyReqPathResolver: () => `/${paymentMethod}/${invoiceId}`
-  })(req, res, next);
+    const response = await axios.get(
+      `${OPENNODE_API_URL}/charges/${chargeId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENNODE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    const chargeData = response.data?.data;
+    if (!chargeData) {
+      return res.status(404).json({ success: false, message: 'Charge not found' });
+    }
+
+    res.json({
+      success: true,
+      amount: chargeData.amount / 100,
+      currency: chargeData.currency || 'USD',
+      status: chargeData.status,
+      ttl: 3600
+    });
+  } catch (error) {
+    console.error('Get Payment Error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch payment' });
+  }
+});
+
+// --- Check OpenNode Payment Status ---
+app.get('/api/check-payment/:chargeId', async (req, res) => {
+  try {
+    const { chargeId } = req.params;
+    const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
+    const OPENNODE_API_URL = 'https://api.opennode.com/v1';
+
+    const response = await axios.get(
+      `${OPENNODE_API_URL}/charges/${chargeId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENNODE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    const chargeData = response.data?.data;
+    if (!chargeData) {
+      return res.json({ paid: false, status: 'not_found' });
+    }
+
+    const isPaid = chargeData.status === 'paid' || chargeData.status === 'completed';
+    res.json({
+      success: true,
+      paid: isPaid,
+      status: chargeData.status
+    });
+  } catch (error) {
+    console.error('Check Payment Error:', error.message);
+    res.json({ paid: false, status: 'error' });
+  }
+});
+
+// --- Payment Invoice Page (OpenNode) ---
+app.get('/pay/invoice/:chargeId', (_req, res) => {
+  res.sendFile(__dirname + '/public/pay-invoice.html');
 });
 
 // --- Proxy all Polapine assets and API calls ---
