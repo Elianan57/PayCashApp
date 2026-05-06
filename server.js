@@ -8,6 +8,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust proxy for X-Forwarded-For headers from Render
+app.set('trust proxy', true);
+
 // --- Production Security ---
 app.use(helmet({
   contentSecurityPolicy: {
