@@ -34,7 +34,8 @@ const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // Limit each IP to 1000 requests per windowMs
   message: { success: false, message: 'Too many requests, please try again later.' },
-  skip: (req) => req.path === '/api/check-payment' // Skip rate limit for status checks
+  skip: (req) => req.path === '/api/check-payment', // Skip rate limit for status checks
+  keyGenerator: (req) => req.ip // Use req.ip for proper proxy support
 });
 
 // Apply rate limiter to API routes
