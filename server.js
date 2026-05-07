@@ -350,12 +350,15 @@ app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.htm
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
 // --- Polapine Invoice Proxy (for cashapp/applepay via payment-gateway) ---
-app.get('/pay/invoice/:invoiceId', (req, res) => {
+app.get('/pay/invoice/:invoiceId', (req, res, next) => {
   const { invoiceId } = req.params;
   const method = req.query.method || 'ecashapp';
-  const polapineUrl = `https://pay.polapine.com/${method}/${invoiceId}`;
-  console.log(`[PROXY] Redirecting to Polapine: ${polapineUrl}`);
-  res.redirect(polapineUrl);
+  // Rewrite the URL to point to Polapine and proxy it
+  req.url = `/${method}/${invoiceId}`;
+  console.log(`[PROXY] Proxying to Polapine: ${method}/${invoiceId}`);
+  proxy('https://pay.polapine.com', {
+    proxyReqPathResolver: () => req.url
+  })(req, res, next);
 });
 
 // --- OpenNode Payment Details ---
