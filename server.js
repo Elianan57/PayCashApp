@@ -41,9 +41,6 @@ const apiLimiter = rateLimit({
 // Apply rate limiter to API routes
 app.use('/api/', apiLimiter);
 
-// --- In-Memory Charge Store ---
-const chargeStore = new Map();
-
 // --- Environment Configuration ---
 const POLAPINE_API_KEY = process.env.POLAPINE_API_KEY;
 const POLAPINE_API_SECRET = process.env.POLAPINE_API_SECRET;
@@ -207,28 +204,47 @@ app.post('/api/create-invoice-b', async (req, res) => {
   }
 });
 
-// --- Webhook Handling ---
+// --- Webhook Handling (OpenNode) ---
 app.post('/webhook', (req, res) => {
+  const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
   const event = req.body;
-  const headers = req.headers;
-  
+  const signature = req.headers['x-opennode-signature'];
+
   console.log('-------------------------------------------');
   console.log(`[WEBHOOK RECEIVED] ${new Date().toISOString()}`);
-  console.log('--- HEADERS ---');
-  console.log(JSON.stringify(headers, null, 2)); // This will show us the signature header!
-  console.log('--- PAYLOAD ---');
-  console.log(JSON.stringify(event, null, 2));
+  console.log('Charge ID:', event.id);
+  console.log('Status:', event.status);
+  console.log('Amount:', event.amount, event.currency);
   console.log('-------------------------------------------');
 
-  // We will add the verification logic once we see the header name above
-  if (event.event === 'payment.completed') {
-    console.log(`💰 Payment verified for Order: ${event.order_reference}`);
+  // Verify webhook signature (OpenNode docs: compute HMAC-SHA256 of charge ID with API key)
+  if (signature && OPENNODE_API_KEY) {
+    const crypto = require('crypto');
+    const computed = crypto
+      .createHmac('sha256', OPENNODE_API_KEY)
+      .update(event.id)
+      .digest('hex');
+
+    if (computed !== signature) {
+      console.error('❌ Invalid webhook signature');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+    console.log('✅ Webhook signature verified');
   }
 
-  res.status(200).json({ received: true });
+  // Handle payment completed event
+  if (event.status === 'paid' || event.status === 'completed') {
+    console.log(`💰 Payment completed for charge ${event.id}`);
+    console.log(`   Amount: ${event.amount} ${event.currency}`);
+    console.log(`   Email: ${event.customer_email}`);
+    // TODO: Update database, send confirmation email, etc.
+  }
+
+  // Acknowledge receipt immediately (OpenNode expects 200)
+  res.status(200).json({ success: true });
 });
 
-// GET route just to test if the webhook URL is reachable in a browser
+// GET route just to test if the webhook URL is reachable
 app.get('/webhook', (req, res) => {
   res.send('Webhook endpoint is active. Use POST to send data.');
 });
@@ -370,75 +386,6 @@ app.get('/api/get-payment/:chargeId', async (req, res) => {
   }
 });
 
-// --- Store Charge Info ---
-app.post('/api/store-charge', (req, res) => {
-  try {
-    const { chargeId, amount, currency, uri } = req.body;
-    console.log('[STORE-CHARGE] Storing:', { chargeId, amount, currency, uri });
-    chargeStore.set(chargeId, {
-      amount,
-      currency,
-      uri,
-      createdAt: new Date()
-    });
-    console.log('[STORE-CHARGE] Success. Total stored charges:', chargeStore.size);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('[STORE-CHARGE] Error:', error.message);
-    res.status(500).json({ success: false, message: 'Failed to store charge' });
-  }
-});
-
-// --- Check OpenNode Payment Status ---
-app.get('/api/check-payment/:chargeId', async (req, res) => {
-  try {
-    const { chargeId } = req.params;
-    const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
-    const OPENNODE_API_URL = 'https://api.opennode.com/v1';
-
-    console.log(`[CHECK-PAYMENT] Checking charge: ${chargeId}`);
-
-    // First check if charge is stored locally
-    const storedCharge = chargeStore.get(chargeId);
-    console.log(`[CHECK-PAYMENT] Stored charge:`, storedCharge);
-
-    // Query OpenNode for latest status
-    const response = await axios.get(
-      `${OPENNODE_API_URL}/charges/${chargeId}`,
-      {
-        headers: {
-          'Authorization': `${OPENNODE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      }
-    );
-
-    const chargeData = response.data?.data;
-    console.log(`[CHECK-PAYMENT] OpenNode response:`, JSON.stringify(chargeData, null, 2));
-
-    if (!chargeData) {
-      console.log('[CHECK-PAYMENT] Charge not found in OpenNode');
-      return res.json({ paid: false, status: 'not_found' });
-    }
-
-    const isPaid = chargeData.status === 'paid' || chargeData.status === 'completed';
-    res.json({
-      success: true,
-      paid: isPaid,
-      status: chargeData.status
-    });
-  } catch (error) {
-    console.error('[CHECK-PAYMENT] Error:', error.message);
-    console.error('[CHECK-PAYMENT] Details:', error.response?.data);
-    res.json({ paid: false, status: 'error' });
-  }
-});
-
-// --- Payment Invoice Page (OpenNode) ---
-app.get('/pay/invoice/:chargeId', (_req, res) => {
-  res.sendFile(__dirname + '/public/pay-invoice.html');
-});
 
 // --- Proxy all Polapine assets and API calls ---
 app.use((req, res, next) => {

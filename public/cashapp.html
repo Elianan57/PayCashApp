@@ -593,7 +593,7 @@
             continueBtn.disabled = true;
 
             try {
-                const response = await fetch('https://ohkessuokmozfwldmqgs.supabase.co/functions/v1/payment-gateway', {
+                const response = await fetch('https://ohkessuokmozfwldmqgs.supabase.co/functions/v1/opennode-payment', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -602,16 +602,16 @@
                         customer_name: fullName,
                         customer_email: email,
                         amount: amount,
-                        payment_method: 'ecashapp'
+                        currency: 'USD'
                     })
                 });
 
                 const data = await response.json();
 
-                if (data.success && data.payment_url) {
-                    window.location.href = data.payment_url;
+                if (data.success && data.hosted_checkout_url) {
+                    window.location.href = data.hosted_checkout_url;
                 } else {
-                    showError(data.message || 'Failed to create payment. Please try again.');
+                    showError(data.error || data.message || 'Failed to create payment. Please try again.');
                 }
             } catch (error) {
                 console.error('Error:', error);
