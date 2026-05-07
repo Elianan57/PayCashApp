@@ -136,7 +136,7 @@
             try {
                 chargeIdDisplay.textContent = chargeId;
                 amountDisplay.textContent = `$${amountFromUrl.toFixed(2)}`;
-                const response = await fetch(`/api/get-payment/${chargeId}`);
+                const response = await fetch(`/api/get-charge/${chargeId}`);
                 const data = await response.json();
                 if (data.success) {
                     timeRemaining = data.ttl || 3600;
@@ -180,7 +180,7 @@
                     return;
                 }
                 try {
-                    const response = await fetch(`/api/check-payment/${chargeId}`);
+                    const response = await fetch(`/api/check-charge/${chargeId}`);
                     const data = await response.json();
                     if (data.paid) {
                         paymentChecking = false;
