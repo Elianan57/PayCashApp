@@ -356,16 +356,29 @@ app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'))
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
-// --- Polapine Invoice Proxy (for cashapp/applepay via payment-gateway) ---
-app.get('/pay/invoice/:invoiceId', (req, res, next) => {
-  const { invoiceId } = req.params;
-  const method = req.query.method || 'ecashapp';
-  // Rewrite the URL to point to Polapine and proxy it
-  req.url = `/${method}/${invoiceId}`;
-  console.log(`[PROXY] Proxying to Polapine: ${method}/${invoiceId}`);
-  proxy('https://pay.polapine.com', {
-    proxyReqPathResolver: () => req.url
-  })(req, res, next);
+// --- Payment Invoice Router (Polapine or OpenNode) ---
+app.get('/pay/invoice/:id', (req, res, next) => {
+  const { id } = req.params;
+  const method = req.query.method;
+  const amount = req.query.amount;
+
+  // If it has a method param, it's a Polapine invoice → proxy to Polapine
+  if (method) {
+    req.url = `/${method}/${id}`;
+    console.log(`[PROXY] Polapine invoice: ${method}/${id}`);
+    return proxy('https://pay.polapine.com', {
+      proxyReqPathResolver: () => req.url
+    })(req, res, next);
+  }
+
+  // Otherwise it's an OpenNode charge → serve custom payment page
+  if (amount) {
+    console.log(`[OPENNODE] Charge: ${id}, Amount: ${amount}`);
+    return res.sendFile(__dirname + '/public/pay-invoice.html');
+  }
+
+  // No method or amount → error
+  res.status(400).json({ error: 'Invalid payment link' });
 });
 
 // --- OpenNode Get Charge Details ---
