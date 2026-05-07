@@ -41,6 +41,9 @@ const apiLimiter = rateLimit({
 // Apply rate limiter to API routes
 app.use('/api/', apiLimiter);
 
+// --- In-Memory Charge Store ---
+const chargeStore = new Map();
+
 // --- Environment Configuration ---
 const POLAPINE_API_KEY = process.env.POLAPINE_API_KEY;
 const POLAPINE_API_SECRET = process.env.POLAPINE_API_SECRET;
@@ -367,6 +370,23 @@ app.get('/api/get-payment/:chargeId', async (req, res) => {
   }
 });
 
+// --- Store Charge Info ---
+app.post('/api/store-charge', (req, res) => {
+  try {
+    const { chargeId, amount, currency, uri } = req.body;
+    chargeStore.set(chargeId, {
+      amount,
+      currency,
+      uri,
+      createdAt: new Date()
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Store Charge Error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to store charge' });
+  }
+});
+
 // --- Check OpenNode Payment Status ---
 app.get('/api/check-payment/:chargeId', async (req, res) => {
   try {
@@ -375,7 +395,7 @@ app.get('/api/check-payment/:chargeId', async (req, res) => {
     const OPENNODE_API_URL = 'https://api.opennode.com/v1';
 
     const response = await axios.get(
-      `${OPENNODE_API_URL}/charges/${chargeId}`,
+      `${OPENNODE_API_URL}/charges`,
       {
         headers: {
           'Authorization': `${OPENNODE_API_KEY}`,
@@ -385,7 +405,9 @@ app.get('/api/check-payment/:chargeId', async (req, res) => {
       }
     );
 
-    const chargeData = response.data?.data;
+    const charges = response.data?.data?.charges || [];
+    const chargeData = charges.find(c => c.id === chargeId);
+
     if (!chargeData) {
       return res.json({ paid: false, status: 'not_found' });
     }
