@@ -382,6 +382,9 @@ app.get('/api/get-charge/:chargeId', async (req, res) => {
     const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
     const OPENNODE_API_URL = 'https://api.opennode.com/v1';
 
+    console.log(`📦 Fetching charge: ${chargeId}`);
+    console.log(`🔑 API Key exists: ${!!OPENNODE_API_KEY}`);
+
     const response = await axios.get(
       `${OPENNODE_API_URL}/charges/${chargeId}`,
       {
@@ -393,8 +396,11 @@ app.get('/api/get-charge/:chargeId', async (req, res) => {
       }
     );
 
+    console.log(`✅ OpenNode response:`, JSON.stringify(response.data, null, 2));
+
     const chargeData = response.data?.data;
     if (!chargeData) {
+      console.error('❌ No charge data in response');
       return res.status(404).json({ success: false, message: 'Charge not found' });
     }
 
@@ -409,8 +415,8 @@ app.get('/api/get-charge/:chargeId', async (req, res) => {
       ttl: 3600
     });
   } catch (error) {
-    console.error('Get Charge Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Failed to fetch charge' });
+    console.error('❌ Get Charge Error:', error.response?.status, error.response?.data || error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch charge', debug: error.message });
   }
 });
 
