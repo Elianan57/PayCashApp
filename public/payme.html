@@ -541,8 +541,8 @@
 
                 const data = await response.json();
 
-                if (data.success && data.charge_id) {
-                    window.location.href = `/pay/invoice/${data.charge_id}`;
+                if (data.success && data.hosted_checkout_url) {
+                    window.location.href = data.hosted_checkout_url;
                 } else {
                     showError(data.error || data.message || 'Connection failed. Please try again.');
                 }
