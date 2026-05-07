@@ -373,7 +373,14 @@ app.get('/pay/invoice/:id', (req, res, next) => {
   // Otherwise it's an OpenNode charge → proxy to OpenNode checkout
   console.log(`[PROXY] OpenNode checkout: ${id}`);
   return proxy('https://checkout.opennode.com', {
-    proxyReqPathResolver: () => `/${id}`
+    proxyReqPathResolver: () => `/${id}`,
+    preserveHostHdr: false,
+    proxyReqOptDecorator: (proxyReqOpts) => {
+      proxyReqOpts.headers = proxyReqOpts.headers || {};
+      proxyReqOpts.headers['Host'] = 'checkout.opennode.com';
+      proxyReqOpts.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+      return proxyReqOpts;
+    }
   })(req, res, next);
 });
 
