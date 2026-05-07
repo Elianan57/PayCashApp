@@ -341,7 +341,7 @@ app.get('/api/get-payment/:chargeId', async (req, res) => {
       `${OPENNODE_API_URL}/charges/${chargeId}`,
       {
         headers: {
-          'Authorization': `Bearer ${OPENNODE_API_KEY}`,
+          'Authorization': `${OPENNODE_API_KEY}`,
           'Content-Type': 'application/json'
         },
         timeout: 10000
@@ -377,7 +377,7 @@ app.get('/api/check-payment/:chargeId', async (req, res) => {
       `${OPENNODE_API_URL}/charges/${chargeId}`,
       {
         headers: {
-          'Authorization': `Bearer ${OPENNODE_API_KEY}`,
+          'Authorization': `${OPENNODE_API_KEY}`,
           'Content-Type': 'application/json'
         },
         timeout: 10000
