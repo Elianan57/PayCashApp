@@ -109,14 +109,32 @@
         </div>
         <div class="payment-info">
             <div class="payment-info-row">
-                <span class="payment-info-label">Charge ID</span>
+                <span class="payment-info-label">Invoice</span>
                 <span class="payment-info-value" id="chargeId">Loading...</span>
+            </div>
+            <div class="payment-info-row">
+                <span class="payment-info-label">Lightning Invoice</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span class="payment-info-value" id="lightningInvoice" style="font-size: 11px; word-break: break-all;">—</span>
+                    <button id="copyLightning" style="background: none; border: none; color: #00FF41; cursor: pointer; font-size: 11px; margin-left: 8px;">COPY</button>
+                </div>
+            </div>
+            <div class="payment-info-row">
+                <span class="payment-info-label">On-chain (fallback)</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span class="payment-info-value" id="onchainAddress" style="font-size: 11px; word-break: break-all;">—</span>
+                    <button id="copyOnchain" style="background: none; border: none; color: #00FF41; cursor: pointer; font-size: 11px; margin-left: 8px;">COPY</button>
+                </div>
+            </div>
+            <div class="payment-info-row">
+                <span class="payment-info-label">Expires</span>
+                <span class="payment-info-value" id="expiresAt">—</span>
             </div>
         </div>
         <div class="status-section">
             <div class="status-text">
                 <span class="status-dot"></span>
-                <span id="statusText">Waiting for payment...</span>
+                <span id="statusText">Awaiting payment confirmation</span>
             </div>
         </div>
     </div>
@@ -141,6 +159,19 @@
                 if (data.success) {
                     timeRemaining = data.ttl || 3600;
                     generateQRCode(data.uri);
+
+                    // Populate invoice details
+                    document.getElementById("lightningInvoice").textContent = data.lightning_invoice || "—";
+                    document.getElementById("onchainAddress").textContent = data.address || "—";
+
+                    // Calculate expiration time
+                    const expiresAt = new Date(Date.now() + timeRemaining * 1000);
+                    document.getElementById("expiresAt").textContent = expiresAt.toLocaleString();
+
+                    // Setup copy buttons
+                    document.getElementById("copyLightning").onclick = () => copyToClipboard(data.lightning_invoice);
+                    document.getElementById("copyOnchain").onclick = () => copyToClipboard(data.address);
+
                     startPaymentPolling();
                     startTimer();
                 } else {
@@ -150,6 +181,13 @@
                 console.error("Init error:", error);
                 showError("Failed to load payment. Please refresh.");
             }
+        }
+
+        function copyToClipboard(text) {
+            if (!text || text === "—") return;
+            navigator.clipboard.writeText(text).then(() => {
+                console.log("Copied to clipboard");
+            });
         }
         function generateQRCode(uri) {
             try {
