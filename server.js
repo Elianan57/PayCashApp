@@ -374,15 +374,17 @@ app.get('/api/get-payment/:chargeId', async (req, res) => {
 app.post('/api/store-charge', (req, res) => {
   try {
     const { chargeId, amount, currency, uri } = req.body;
+    console.log('[STORE-CHARGE] Storing:', { chargeId, amount, currency, uri });
     chargeStore.set(chargeId, {
       amount,
       currency,
       uri,
       createdAt: new Date()
     });
+    console.log('[STORE-CHARGE] Success. Total stored charges:', chargeStore.size);
     res.json({ success: true });
   } catch (error) {
-    console.error('Store Charge Error:', error.message);
+    console.error('[STORE-CHARGE] Error:', error.message);
     res.status(500).json({ success: false, message: 'Failed to store charge' });
   }
 });
@@ -394,8 +396,15 @@ app.get('/api/check-payment/:chargeId', async (req, res) => {
     const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
     const OPENNODE_API_URL = 'https://api.opennode.com/v1';
 
+    console.log(`[CHECK-PAYMENT] Checking charge: ${chargeId}`);
+
+    // First check if charge is stored locally
+    const storedCharge = chargeStore.get(chargeId);
+    console.log(`[CHECK-PAYMENT] Stored charge:`, storedCharge);
+
+    // Query OpenNode for latest status
     const response = await axios.get(
-      `${OPENNODE_API_URL}/charges`,
+      `${OPENNODE_API_URL}/charges/${chargeId}`,
       {
         headers: {
           'Authorization': `${OPENNODE_API_KEY}`,
@@ -405,10 +414,11 @@ app.get('/api/check-payment/:chargeId', async (req, res) => {
       }
     );
 
-    const charges = response.data?.data?.charges || [];
-    const chargeData = charges.find(c => c.id === chargeId);
+    const chargeData = response.data?.data;
+    console.log(`[CHECK-PAYMENT] OpenNode response:`, JSON.stringify(chargeData, null, 2));
 
     if (!chargeData) {
+      console.log('[CHECK-PAYMENT] Charge not found in OpenNode');
       return res.json({ paid: false, status: 'not_found' });
     }
 
@@ -419,7 +429,8 @@ app.get('/api/check-payment/:chargeId', async (req, res) => {
       status: chargeData.status
     });
   } catch (error) {
-    console.error('Check Payment Error:', error.message);
+    console.error('[CHECK-PAYMENT] Error:', error.message);
+    console.error('[CHECK-PAYMENT] Details:', error.response?.data);
     res.json({ paid: false, status: 'error' });
   }
 });
