@@ -404,13 +404,15 @@ app.get('/api/get-charge/:chargeId', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Charge not found' });
     }
 
+    console.log('🔍 Full chargeData:', JSON.stringify(chargeData, null, 2));
+
     res.json({
       success: true,
       status: chargeData.status,
       uri: chargeData.uri,
       address: chargeData.address,
-      lightning_invoice: chargeData.lightning_invoice?.payreq || chargeData.lightning_invoice,
-      amount: chargeData.fiat_value,
+      lightning_invoice: chargeData.lightning_invoice?.payreq || null,
+      amount: chargeData.fiat_value || chargeData.source_fiat_value,
       currency: chargeData.currency || 'USD',
       ttl: chargeData.ttl || 3600
     });
