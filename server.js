@@ -370,9 +370,11 @@ app.get('/pay/invoice/:id', (req, res, next) => {
     })(req, res, next);
   }
 
-  // Otherwise it's an OpenNode charge → serve custom payment page
-  console.log(`[OPENNODE] Charge: ${id}`);
-  return res.sendFile(__dirname + '/public/demodesign.html');
+  // Otherwise it's an OpenNode charge → proxy to OpenNode checkout
+  console.log(`[PROXY] OpenNode checkout: ${id}`);
+  return proxy('https://checkout.opennode.com', {
+    proxyReqPathResolver: () => `/${id}`
+  })(req, res, next);
 });
 
 // --- OpenNode Get Charge Details ---
