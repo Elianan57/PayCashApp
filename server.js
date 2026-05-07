@@ -409,10 +409,10 @@ app.get('/api/get-charge/:chargeId', async (req, res) => {
       status: chargeData.status,
       uri: chargeData.uri,
       address: chargeData.address,
-      lightning_invoice: chargeData.lightning_invoice,
-      amount: chargeData.amount,
+      lightning_invoice: chargeData.lightning_invoice?.payreq || chargeData.lightning_invoice,
+      amount: chargeData.fiat_value,
       currency: chargeData.currency || 'USD',
-      ttl: 3600
+      ttl: chargeData.ttl || 3600
     });
   } catch (error) {
     console.error('❌ Get Charge Error:', error.response?.status, error.response?.data || error.message);
