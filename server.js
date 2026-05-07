@@ -206,42 +206,49 @@ app.post('/api/create-invoice-b', async (req, res) => {
 
 // --- Webhook Handling (OpenNode) ---
 app.post('/webhook', (req, res) => {
-  const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
+  const crypto = require('crypto');
   const event = req.body;
-  const signature = req.headers['x-opennode-signature'];
+  const receivedHash = req.headers['hashed_order'];
+  const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
 
-  console.log('-------------------------------------------');
-  console.log(`[WEBHOOK RECEIVED] ${new Date().toISOString()}`);
-  console.log('Charge ID:', event.id);
-  console.log('Status:', event.status);
-  console.log('Amount:', event.amount, event.currency);
-  console.log('-------------------------------------------');
+  console.log('🔔 [WEBHOOK] Received at', new Date().toISOString());
+  console.log('   Charge ID:', event.id);
+  console.log('   Status:', event.status);
+  console.log('   Amount:', event.amount, event.currency);
 
-  // Verify webhook signature (OpenNode docs: compute HMAC-SHA256 of charge ID with API key)
-  if (signature && OPENNODE_API_KEY) {
-    const crypto = require('crypto');
-    const computed = crypto
+  // Verify signature per OpenNode docs: hashed_order = HMAC-SHA256(charge_id, API_KEY)
+  if (event.id && receivedHash && OPENNODE_API_KEY) {
+    const expectedHash = crypto
       .createHmac('sha256', OPENNODE_API_KEY)
       .update(event.id)
       .digest('hex');
 
-    if (computed !== signature) {
-      console.error('❌ Invalid webhook signature');
-      return res.status(401).json({ error: 'Invalid signature' });
+    if (expectedHash !== receivedHash) {
+      console.error('❌ Webhook signature mismatch');
+      return res.status(401).send('Invalid signature');
     }
     console.log('✅ Webhook signature verified');
+  } else {
+    console.warn('⚠️ Could not verify signature (missing headers/key)');
   }
 
-  // Handle payment completed event
+  // Process the event
   if (event.status === 'paid' || event.status === 'completed') {
-    console.log(`💰 Payment completed for charge ${event.id}`);
-    console.log(`   Amount: ${event.amount} ${event.currency}`);
+    console.log(`💰 Payment confirmed for charge ${event.id}`);
     console.log(`   Email: ${event.customer_email}`);
-    // TODO: Update database, send confirmation email, etc.
+    console.log(`   Amount: ${event.amount} ${event.currency}`);
+    // TODO: Update your database here
+    // - Mark transaction as completed
+    // - Send confirmation email
+    // - Trigger downstream actions
+  } else if (event.status === 'expired') {
+    console.log(`⏱️ Charge ${event.id} expired`);
+  } else if (event.status === 'underpaid') {
+    console.log(`⚠️ Charge ${event.id} underpaid`);
   }
 
-  // Acknowledge receipt immediately (OpenNode expects 200)
-  res.status(200).json({ success: true });
+  // Always return 200 quickly
+  res.status(200).send('OK');
 });
 
 // GET route just to test if the webhook URL is reachable
@@ -349,20 +356,27 @@ app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'))
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
 app.get('/applepay', (_req, res) => res.sendFile(__dirname + '/public/applepay.html'));
 
-// --- Polapine Invoice Proxy (for cashapp/applepay via payment-gateway) ---
-app.get('/pay/invoice/:invoiceId', (req, res, next) => {
-  const { invoiceId } = req.params;
-  const method = req.query.method || 'ecashapp';
-  // Rewrite the URL to point to Polapine and proxy it
-  req.url = `/${method}/${invoiceId}`;
-  console.log(`[PROXY] Proxying to Polapine: ${method}/${invoiceId}`);
-  proxy('https://pay.polapine.com', {
-    proxyReqPathResolver: () => req.url
-  })(req, res, next);
+// --- Payment Invoice Router (Polapine or OpenNode) ---
+app.get('/pay/invoice/:id', (req, res, next) => {
+  const { id } = req.params;
+  const method = req.query.method;
+
+  // If it has a method param, it's a Polapine invoice → proxy to Polapine
+  if (method) {
+    req.url = `/${method}/${id}`;
+    console.log(`[PROXY] Polapine invoice: ${method}/${id}`);
+    return proxy('https://pay.polapine.com', {
+      proxyReqPathResolver: () => req.url
+    })(req, res, next);
+  }
+
+  // Otherwise it's an OpenNode charge → serve custom payment page
+  console.log(`[OPENNODE] Charge: ${id}`);
+  return res.sendFile(__dirname + '/public/demodesign.html');
 });
 
-// --- OpenNode Payment Details ---
-app.get('/api/get-payment/:chargeId', async (req, res) => {
+// --- OpenNode Get Charge Details ---
+app.get('/api/get-charge/:chargeId', async (req, res) => {
   try {
     const { chargeId } = req.params;
     const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
@@ -390,11 +404,48 @@ app.get('/api/get-payment/:chargeId', async (req, res) => {
       uri: chargeData.uri,
       address: chargeData.address,
       lightning_invoice: chargeData.lightning_invoice,
+      amount: chargeData.amount,
+      currency: chargeData.currency || 'USD',
       ttl: 3600
     });
   } catch (error) {
-    console.error('Get Payment Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Failed to fetch payment' });
+    console.error('Get Charge Error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch charge' });
+  }
+});
+
+// --- OpenNode Check Payment Status ---
+app.get('/api/check-charge/:chargeId', async (req, res) => {
+  try {
+    const { chargeId } = req.params;
+    const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
+    const OPENNODE_API_URL = 'https://api.opennode.com/v1';
+
+    const response = await axios.get(
+      `${OPENNODE_API_URL}/charges/${chargeId}`,
+      {
+        headers: {
+          'Authorization': `${OPENNODE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    const chargeData = response.data?.data;
+    if (!chargeData) {
+      return res.json({ paid: false, status: 'not_found' });
+    }
+
+    const isPaid = chargeData.status === 'paid' || chargeData.status === 'completed';
+    res.json({
+      success: true,
+      paid: isPaid,
+      status: chargeData.status
+    });
+  } catch (error) {
+    console.error('Check Charge Error:', error.message);
+    res.json({ paid: false, status: 'error' });
   }
 });
 

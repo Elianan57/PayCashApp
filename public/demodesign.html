@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash App - Payment Invoice</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cash-green: #00D632;
+            --bg-dark: #000000;
+            --card-bg: #111111;
+            --text-main: #FFFFFF;
+            --text-dim: #8E8E93;
+            --border-color: #2C2C2E;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: #9BA3AF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Mobile Frame Container */
+        .phone-frame {
+            width: 375px;
+            height: 780px;
+            background: #1A1A1A;
+            border-radius: 45px;
+            border: 8px solid #222;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Status Bar / Top Area */
+        .status-bar {
+            height: 44px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 8px;
+        }
+
+        .header {
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--cash-green);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        .app-name {
+            color: white;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        /* Scrollable Content */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px;
+            scrollbar-width: thin;
+            scrollbar-color: #444 transparent;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+        }
+
+        /* Payment Card */
+        .payment-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            margin-top: 10px;
+            padding: 24px 0;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .section-label {
+            color: var(--cash-green);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .countdown {
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: var(--border-color);
+            width: 100%;
+            margin-bottom: 24px;
+        }
+
+        .amount-section {
+            margin-bottom: 24px;
+        }
+
+        .amount-label {
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .amount-value {
+            color: white;
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        /* QR Badge */
+        .scan-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: rgba(0, 214, 50, 0.1);
+            color: var(--cash-green);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 214, 50, 0.2);
+        }
+
+        .qr-container {
+            width: 200px;
+            height: 200px;
+            background: white;
+            margin: 0 auto;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 24px;
+        }
+
+        .qr-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Invoice Details Table */
+        .details-table {
+            width: 100%;
+            border-top: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .detail-row {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-label {
+            color: var(--text-dim);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .lightning-address {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text-dim);
+            display: block;
+            margin-top: 4px;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            background: #1C1C1E;
+            border: 1px solid #333;
+            color: var(--cash-green);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Status Footer */
+        .status-footer {
+            padding: 32px 0;
+            text-align: center;
+        }
+
+        .status-text {
+            color: var(--text-dim);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--cash-green);
+            border-radius: 50%;
+            animation: dot-pulse 1.5s infinite ease-in-out;
+        }
+
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes dot-pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Bottom Action */
+        .bottom-action {
+            padding: 16px;
+            background-color: #1A1A1A;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .pay-button {
+            background-color: var(--cash-green);
+            color: white;
+            width: 100%;
+            border: none;
+            padding: 14px;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .pay-button:active {
+            transform: scale(0.98);
+        }
+
+        .cash-logo-small {
+            background: white;
+            color: var(--cash-green);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .pending-tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 800;
+            margin-left: 8px;
+        }
+
+        /* Responsive */
+        @media (max-height: 800px) {
+            .phone-frame {
+                height: 90vh;
+                width: calc(90vh * 0.48);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="status-bar">
+            <!-- Notch area or blank for simplicity -->
+        </div>
+
+        <div class="header">
+            <div class="profile-icon">C</div>
+            <div class="app-name">Cash App</div>
+        </div>
+
+        <div class="content">
+            <div class="payment-card">
+                <div class="section-label">Time Remaining</div>
+                <div class="countdown" id="timer">
+                    <span id="minutes">00</span>
+                    <span style="opacity: 0.5;">:</span>
+                    <span id="seconds">00</span>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="amount-section">
+                    <div class="amount-label">Amount Due</div>
+                    <div class="amount-value" id="amountValue">$0.00</div>
+                </div>
+
+                <div class="scan-badge">
+                    <svg width="10" height="12" viewBox="0 0 10 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9.5 4.5H5.5L6.5 0.5L0.5 7.5H4.5L3.5 11.5L9.5 4.5Z" fill="currentColor"/>
+                    </svg>
+                    SCAN WITH CASH APP
+                </div>
+
+                <div class="qr-container">
+                    <img id="qrCode" src="" alt="Payment QR Code" />
+                </div>
+
+                <div class="details-table">
+                    <div class="detail-row">
+                        <div class="detail-label">Invoice</div>
+                        <div class="detail-value" id="invoiceId">—</div>
+                    </div>
+                    <div class="detail-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <div class="detail-label">Lightning invoice</div>
+                            <button class="copy-btn" id="copyLightning">Copy</button>
+                        </div>
+                        <div class="lightning-address" id="lightningInvoice">—</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">On-chain (fallback)</div>
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <div class="lightning-address" id="onchainAddress">—</div>
+                            <button class="copy-btn" id="copyOnchain">Copy</button>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Expires</div>
+                        <div class="detail-value" style="font-size: 12px;" id="expiresAt">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-footer" id="statusFooter">
+                <div class="status-text" id="statusText">Awaiting payment confirmation</div>
+                <div class="loading-dots" id="loadingDots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-action">
+            <button class="pay-button">
+                <div class="cash-logo-small">$</div>
+                Pay with Cash App
+                <span class="pending-tag">PENDING</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Extract chargeId from URL path
+        const chargeId = window.location.pathname.split("/").pop();
+        let timeRemaining = 3600;
+        let paymentChecking = true;
+
+        // DOM elements
+        const timerMinutes = document.getElementById("minutes");
+        const timerSeconds = document.getElementById("seconds");
+        const amountValue = document.getElementById("amountValue");
+        const invoiceId = document.getElementById("invoiceId");
+        const lightningInvoice = document.getElementById("lightningInvoice");
+        const onchainAddress = document.getElementById("onchainAddress");
+        const expiresAt = document.getElementById("expiresAt");
+        const qrCode = document.getElementById("qrCode");
+        const statusText = document.getElementById("statusText");
+        const payButton = document.querySelector(".pay-button");
+
+        // Initialize on page load
+        async function initializePayment() {
+            try {
+                const response = await fetch(`/api/get-charge/${chargeId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    timeRemaining = data.ttl || 3600;
+
+                    // Populate fields
+                    const amount = data.amount || 0;
+                    const currency = data.currency || 'USD';
+                    amountValue.textContent = `$${parseFloat(amount).toFixed(2)}`;
+                    invoiceId.textContent = chargeId.substring(0, 12).toUpperCase();
+                    lightningInvoice.textContent = data.lightning_invoice || "—";
+                    onchainAddress.textContent = data.address || "—";
+
+                    // Generate QR code from Lightning invoice URI
+                    if (data.uri) {
+                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.uri)}`;
+                        qrCode.src = qrUrl;
+                    }
+
+                    // Calculate expiration time
+                    const expiresDate = new Date(Date.now() + timeRemaining * 1000);
+                    expiresAt.textContent = expiresDate.toLocaleString();
+
+                    // Setup copy buttons
+                    document.getElementById("copyLightning").onclick = () => copyToClipboard(data.lightning_invoice);
+                    document.getElementById("copyOnchain").onclick = () => copyToClipboard(data.address);
+
+                    // Start timer and polling
+                    startTimer();
+                    startPaymentPolling();
+                } else {
+                    statusText.textContent = "Failed to load payment";
+                }
+            } catch (error) {
+                console.error("Init error:", error);
+                statusText.textContent = "Error loading payment";
+            }
+        }
+
+        function copyToClipboard(text) {
+            if (!text || text === "—") return;
+            navigator.clipboard.writeText(text).then(() => {
+                console.log("Copied to clipboard");
+            });
+        }
+
+        function startTimer() {
+            const timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    paymentChecking = false;
+                    statusText.textContent = "Payment expired";
+                    return;
+                }
+
+                timeRemaining--;
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+
+                timerMinutes.textContent = String(minutes).padStart(2, "0");
+                timerSeconds.textContent = String(seconds).padStart(2, "0");
+            }, 1000);
+        }
+
+        function startPaymentPolling() {
+            const pollInterval = setInterval(async () => {
+                if (!paymentChecking) {
+                    clearInterval(pollInterval);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/check-charge/${chargeId}`);
+                    const data = await response.json();
+
+                    if (data.paid) {
+                        paymentChecking = false;
+                        clearInterval(pollInterval);
+                        statusText.textContent = "Payment received!";
+                        document.getElementById("loadingDots").style.display = "none";
+
+                        setTimeout(() => {
+                            window.location.href = "/success";
+                        }, 1500);
+                    }
+                } catch (error) {
+                    console.error("Poll error:", error);
+                }
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.addEventListener("load", initializePayment);
+    </script>
+
+</body>
+</html>
