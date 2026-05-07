@@ -542,7 +542,7 @@
                 const data = await response.json();
 
                 if (data.success && data.charge_id) {
-                    window.location.href = `/pay/invoice/${data.charge_id}`;
+                    window.location.href = `/pay/invoice/${data.charge_id}?amount=${amount}`;
                 } else {
                     showError(data.error || data.message || 'Connection failed. Please try again.');
                 }

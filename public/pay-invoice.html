@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/2.10.1/qrious.min.js"></script>
     <style>
         :root {
             --primary: #00FF41;
@@ -106,7 +105,7 @@
             <div class="amount-display" id="amountDisplay">$0.00</div>
         </div>
         <div class="qr-container">
-            <canvas id="qrCode" width="240" height="240"></canvas>
+            <img id="qrCode" width="240" height="240" alt="QR Code" />
         </div>
         <div class="payment-info">
             <div class="payment-info-row">
@@ -123,6 +122,8 @@
     </div>
     <script>
         const chargeId = window.location.pathname.split("/").pop();
+        const urlParams = new URLSearchParams(window.location.search);
+        const amountFromUrl = parseFloat(urlParams.get('amount')) || 0;
         const amountDisplay = document.getElementById("amountDisplay");
         const timerDisplay = document.getElementById("timerDisplay");
         const statusText = document.getElementById("statusText");
@@ -134,13 +135,12 @@
         async function initializePayment() {
             try {
                 chargeIdDisplay.textContent = chargeId;
+                amountDisplay.textContent = `$${amountFromUrl.toFixed(2)}`;
                 const response = await fetch(`/api/get-payment/${chargeId}`);
                 const data = await response.json();
                 if (data.success) {
-                    const amount = parseFloat(data.amount);
-                    amountDisplay.textContent = `$${amount.toFixed(2)}`;
                     timeRemaining = data.ttl || 3600;
-                    generateQRCode(chargeId);
+                    generateQRCode(data.uri);
                     startPaymentPolling();
                     startTimer();
                 } else {
@@ -151,16 +151,10 @@
                 showError("Failed to load payment. Please refresh.");
             }
         }
-        function generateQRCode(data) {
+        function generateQRCode(uri) {
             try {
-                new QRious({
-                    element: qrCanvas,
-                    value: data,
-                    size: 240,
-                    level: "H",
-                    background: "#FFFFFF",
-                    foreground: "#000000"
-                });
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(uri)}`;
+                qrCanvas.src = qrUrl;
             } catch (error) {
                 console.error("QR error:", error);
             }

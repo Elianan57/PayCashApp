@@ -355,9 +355,10 @@ app.get('/api/get-payment/:chargeId', async (req, res) => {
 
     res.json({
       success: true,
-      amount: chargeData.amount / 100,
-      currency: chargeData.currency || 'USD',
       status: chargeData.status,
+      uri: chargeData.uri,
+      address: chargeData.address,
+      lightning_invoice: chargeData.lightning_invoice,
       ttl: 3600
     });
   } catch (error) {
