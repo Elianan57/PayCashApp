@@ -36,7 +36,7 @@
             width: 100%;
             max-width: 500px;
             background: #0d0d0d;
-            border-radius: 24px;
+            border-radius: 8px;
             position: relative;
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 214, 50, 0.1);
@@ -96,13 +96,13 @@
 
         .content::-webkit-scrollbar-thumb {
             background: #444;
-            border-radius: 10px;
+            border-radius: 4px;
         }
 
         /* Payment Card */
         .payment-card {
             background-color: var(--card-bg);
-            border-radius: 16px;
+            border-radius: 8px;
             margin-top: 10px;
             padding: 24px 0;
             border: 1px solid var(--border-color);
@@ -163,7 +163,7 @@
             background-color: rgba(0, 214, 50, 0.1);
             color: var(--cash-green);
             padding: 6px 14px;
-            border-radius: 20px;
+            border-radius: 6px;
             font-size: 11px;
             font-weight: 800;
             margin-bottom: 20px;
@@ -175,7 +175,7 @@
             height: 200px;
             background: white;
             margin: 0 auto;
-            border-radius: 12px;
+            border-radius: 6px;
             padding: 12px;
             margin-bottom: 24px;
             position: relative;
@@ -190,21 +190,6 @@
             object-fit: contain;
         }
 
-        .qr-logo {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            background: var(--cash-green);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 900;
-            font-size: 28px;
-            box-shadow: 0 0 20px rgba(0, 214, 50, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
-            border: 2px solid white;
-        }
 
         /* Invoice Details Table */
         .details-table {
@@ -251,12 +236,18 @@
             border: 1px solid #333;
             color: var(--cash-green);
             padding: 4px 12px;
-            border-radius: 6px;
+            border-radius: 4px;
             font-size: 10px;
             font-weight: 800;
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn.copied {
+            background: var(--cash-green);
+            color: #000;
         }
 
         /* Status Footer */
@@ -307,7 +298,7 @@
             width: 100%;
             border: none;
             padding: 14px;
-            border-radius: 24px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: 700;
             display: flex;
@@ -339,7 +330,7 @@
         .pending-tag {
             background: rgba(255, 255, 255, 0.2);
             padding: 2px 8px;
-            border-radius: 10px;
+            border-radius: 4px;
             font-size: 9px;
             font-weight: 800;
             margin-left: 8px;
@@ -391,7 +382,6 @@
 
                 <div class="qr-container">
                     <img id="qrCode" src="" alt="Payment QR Code" />
-                    <div class="qr-logo">$</div>
                 </div>
 
                 <div class="details-table">
@@ -488,7 +478,16 @@
                 const currency = chargeData.currency || 'USD';
                 amountValue.textContent = `$${parseFloat(amount).toFixed(2)}`;
                 invoiceId.textContent = chargeId.substring(0, 12).toUpperCase();
-                lightningInvoice.textContent = chargeData.lightning_invoice || "—";
+
+                // Show truncated lightning invoice with dots
+                if (chargeData.lightning_invoice) {
+                    const inv = chargeData.lightning_invoice;
+                    const truncated = inv.length > 20 ? `${inv.substring(0, 8)}...${inv.substring(inv.length - 6)}` : inv;
+                    lightningInvoice.textContent = truncated;
+                    lightningInvoice.title = inv;
+                } else {
+                    lightningInvoice.textContent = "—";
+                }
                 onchainAddress.textContent = chargeData.address || "—";
 
                 // Generate QR code from full Cash App URL (scans directly into Cash App with amount)
@@ -503,8 +502,12 @@
                 expiresAt.textContent = expiresDate.toLocaleString();
 
                 // Setup copy buttons
-                document.getElementById("copyLightning").onclick = () => copyToClipboard(chargeData.lightning_invoice);
-                document.getElementById("copyOnchain").onclick = () => copyToClipboard(chargeData.address);
+                document.getElementById("copyLightning").onclick = function() {
+                    copyToClipboard(chargeData.lightning_invoice, this);
+                };
+                document.getElementById("copyOnchain").onclick = function() {
+                    copyToClipboard(chargeData.address, this);
+                };
 
                 // Setup pay button - open in Cash App
                 document.getElementById("payBtn").onclick = () => {
@@ -522,10 +525,16 @@
             }
         }
 
-        function copyToClipboard(text) {
+        function copyToClipboard(text, btn) {
             if (!text || text === "—") return;
             navigator.clipboard.writeText(text).then(() => {
-                console.log("Copied to clipboard");
+                const originalText = btn.textContent;
+                btn.textContent = "COPIED!";
+                btn.classList.add("copied");
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove("copied");
+                }, 2000);
             }).catch(err => console.error('Copy failed:', err));
         }
 
