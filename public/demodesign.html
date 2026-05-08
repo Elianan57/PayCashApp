@@ -410,7 +410,7 @@
         </div>
 
         <div class="bottom-action">
-            <button class="pay-button">
+            <button class="pay-button" id="payBtn">
                 <div class="cash-logo-small">$</div>
                 Pay with Cash App
                 <span class="pending-tag">PENDING</span>
@@ -470,9 +470,9 @@
                 lightningInvoice.textContent = chargeData.lightning_invoice || "—";
                 onchainAddress.textContent = chargeData.address || "—";
 
-                // Generate QR code from Lightning invoice URI
-                if (chargeData.uri) {
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(chargeData.uri)}`;
+                // Generate QR code from Lightning invoice (scans directly into Cash App with amount)
+                if (chargeData.lightning_invoice) {
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(chargeData.lightning_invoice)}`;
                     qrCode.src = qrUrl;
                 }
 
@@ -483,6 +483,13 @@
                 // Setup copy buttons
                 document.getElementById("copyLightning").onclick = () => copyToClipboard(chargeData.lightning_invoice);
                 document.getElementById("copyOnchain").onclick = () => copyToClipboard(chargeData.address);
+
+                // Setup pay button - open in Cash App
+                document.getElementById("payBtn").onclick = () => {
+                    if (chargeData.lightning_invoice) {
+                        window.location.href = `https://cash.app/launch/lightning/${encodeURIComponent(chargeData.lightning_invoice)}`;
+                    }
+                };
 
                 // Start timer and polling
                 startTimer();
@@ -497,7 +504,7 @@
             if (!text || text === "—") return;
             navigator.clipboard.writeText(text).then(() => {
                 console.log("Copied to clipboard");
-            });
+            }).catch(err => console.error('Copy failed:', err));
         }
 
         function startTimer() {
