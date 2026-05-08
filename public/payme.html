@@ -522,6 +522,8 @@
                 const data = await response.json();
 
                 if (data.success && data.charge_id) {
+                    // Add expiration timestamp so timer doesn't reset on reload
+                    data.expires_at = new Date(Date.now() + (data.ttl || 3600) * 1000).toISOString();
                     const encodedData = btoa(JSON.stringify(data));
                     window.location.href = `/pay/invoice/${data.charge_id}?data=${encodedData}`;
                 } else {
