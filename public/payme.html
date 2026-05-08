@@ -491,18 +491,8 @@
             errorMessage.style.display = 'none';
             errorMessage.classList.remove('fixed-mobile');
 
-            const fullName = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
             const amount = parseFloat(amountInput.value);
 
-            if (!fullName) {
-                showError('Please enter your full name');
-                return;
-            }
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showError('Please enter a valid email address');
-                return;
-            }
             if (!amount || isNaN(amount) || amount < 10) {
                 showError('Minimum amount is $10');
                 return;
@@ -522,8 +512,6 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        customer_name: fullName,
-                        customer_email: email,
                         amount: amount,
                         currency: 'USD'
                     })
