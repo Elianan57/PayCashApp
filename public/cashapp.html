@@ -330,16 +330,6 @@
 
             <form id="checkoutForm" novalidate>
                 <div class="form-group">
-                    <label class="form-label" for="fullName">Full Name</label>
-                    <input type="text" id="fullName" class="input-field" placeholder="John Smith" autocomplete="name" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="email">Email</label>
-                    <input type="email" id="email" class="input-field" placeholder="your@email.com" autocomplete="email" required>
-                </div>
-
-                <div class="form-group">
                     <label class="form-label" for="amountTrigger">Amount (USD)</label>
                     <div class="dropdown" id="amountDropdown">
                         <button
@@ -568,18 +558,8 @@
             errorMessage.style.display = 'none';
             errorMessage.classList.remove('fixed-mobile');
 
-            const fullName = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
             const amount = parseFloat(amountInput.value);
 
-            if (!fullName) {
-                showError('Please enter your full name');
-                return;
-            }
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showError('Please enter a valid email address');
-                return;
-            }
             if (!amount || isNaN(amount)) {
                 showError('Please select an amount from the dropdown');
                 return;
@@ -599,8 +579,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        customer_name: fullName,
-                        customer_email: email,
+                        customer_name: 'Guest',
+                        customer_email: 'guest@cashap.shop',
                         amount: amount,
                         payment_method: 'ecashapp'
                     })
