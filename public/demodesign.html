@@ -470,9 +470,10 @@
                 lightningInvoice.textContent = chargeData.lightning_invoice || "—";
                 onchainAddress.textContent = chargeData.address || "—";
 
-                // Generate QR code from Lightning invoice (scans directly into Cash App with amount)
+                // Generate QR code from full Cash App URL (scans directly into Cash App with amount)
                 if (chargeData.lightning_invoice) {
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(chargeData.lightning_invoice)}`;
+                    const cashAppLink = `https://cash.app/launch/lightning/${chargeData.lightning_invoice}`;
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(cashAppLink)}`;
                     qrCode.src = qrUrl;
                 }
 
