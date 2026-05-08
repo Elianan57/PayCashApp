@@ -383,9 +383,9 @@
                     <label class="form-label" for="amount">AMOUNT (USD)</label>
                     <div class="amount-input-wrapper">
                         <span class="currency-symbol">$</span>
-                        <input type="number" id="amount" class="input-field amount-input" value="0" min="10" max="1000" step="1" required>
+                        <input type="number" id="amount" class="input-field amount-input" value="0" min="10" max="2000" step="1" required>
                     </div>
-                    <div class="input-hint">Between 10 and 1,000 USD</div>
+                    <div class="input-hint">Between 10 and 2,000 USD</div>
                     <div class="quick-amounts-label">Quick amounts</div>
                     <div class="quick-amounts-grid">
                         <button type="button" class="quick-amount-btn" data-amount="10">$10</button>
@@ -403,7 +403,7 @@
                         <button type="button" class="quick-amount-btn" data-amount="250">$250</button>
                         <button type="button" class="quick-amount-btn" data-amount="300">$300</button>
                         <button type="button" class="quick-amount-btn" data-amount="500">$500</button>
-                        <button type="button" class="quick-amount-btn" data-amount="1000">$1000</button>
+                        <button type="button" class="quick-amount-btn" data-amount="2000">$2000</button>
                     </div>
 
                     
@@ -462,10 +462,10 @@
         amountInput.addEventListener('input', () => {
             let val = parseFloat(amountInput.value);
             
-            // Cap at 1000
-            if (val > 1000) {
-                amountInput.value = 1000;
-                val = 1000;
+            // Cap at 2000
+            if (val > 2000) {
+                amountInput.value = 2000;
+                val = 2000;
             }
 
             const currentVal = amountInput.value;
@@ -497,8 +497,8 @@
                 showError('Minimum amount is $10');
                 return;
             }
-            if (amount > 1000) {
-                showError('Maximum amount is $1,000');
+            if (amount > 2000) {
+                showError('Maximum amount is $2,000');
                 return;
             }
 
