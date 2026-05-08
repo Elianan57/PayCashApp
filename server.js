@@ -370,18 +370,9 @@ app.get('/pay/invoice/:id', (req, res, next) => {
     })(req, res, next);
   }
 
-  // Otherwise it's an OpenNode charge → proxy to OpenNode checkout
-  console.log(`[PROXY] OpenNode checkout: ${id}`);
-  return proxy('https://checkout.opennode.com', {
-    proxyReqPathResolver: () => `/${id}`,
-    preserveHostHdr: false,
-    proxyReqOptDecorator: (proxyReqOpts) => {
-      proxyReqOpts.headers = proxyReqOpts.headers || {};
-      proxyReqOpts.headers['Host'] = 'checkout.opennode.com';
-      proxyReqOpts.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
-      return proxyReqOpts;
-    }
-  })(req, res, next);
+  // Otherwise it's an OpenNode charge → serve iframe page
+  console.log(`[IFRAME] OpenNode checkout: ${id}`);
+  return res.sendFile(__dirname + '/public/pay-iframe.html');
 });
 
 // --- OpenNode Get Charge Details ---

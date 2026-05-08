@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - CashApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            height: 100vh;
+            background: #000;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <iframe id="checkout" allow="payment" title="OpenNode Checkout"></iframe>
+    </div>
+
+    <script>
+        const chargeId = window.location.pathname.split('/').pop();
+        const iframe = document.getElementById('checkout');
+
+        // Set iframe src to OpenNode checkout
+        iframe.src = `https://checkout.opennode.com/${chargeId}`;
+
+        console.log(`🔗 Loading OpenNode checkout for charge: ${chargeId}`);
+    </script>
+</body>
+</html>
