@@ -370,9 +370,9 @@ app.get('/pay/invoice/:id', (req, res, next) => {
     })(req, res, next);
   }
 
-  // Otherwise it's an OpenNode charge → serve iframe page
-  console.log(`[IFRAME] OpenNode checkout: ${id}`);
-  return res.sendFile(__dirname + '/public/pay-iframe.html');
+  // Otherwise it's an OpenNode charge → serve custom payment page
+  console.log(`[CUSTOM] OpenNode payment page: ${id}`);
+  return res.sendFile(__dirname + '/public/demodesign.html');
 });
 
 // --- OpenNode Get Charge Details ---

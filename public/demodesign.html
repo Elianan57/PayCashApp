@@ -423,6 +423,21 @@
     <script>
         // Extract chargeId from URL path
         const chargeId = window.location.pathname.split("/").pop();
+
+        // Extract encoded data from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedData = urlParams.get('data');
+        let chargeData = null;
+
+        if (encodedData) {
+            try {
+                chargeData = JSON.parse(atob(encodedData));
+                console.log(`📦 Decoded charge data:`, chargeData);
+            } catch (e) {
+                console.error('Failed to decode data:', e);
+            }
+        }
+
         let timeRemaining = 3600;
         let paymentChecking = true;
 
@@ -439,45 +454,41 @@
         const payButton = document.querySelector(".pay-button");
 
         // Initialize on page load
-        async function initializePayment() {
+        function initializePayment() {
             try {
-                console.log(`📦 Fetching charge: ${chargeId}`);
-                const response = await fetch(`/api/get-charge/${chargeId}`);
-                console.log(`📡 Response status: ${response.status}`);
-                const data = await response.json();
-                console.log(`📊 Response data:`, data);
-
-                if (data.success) {
-                    timeRemaining = data.ttl || 3600;
-
-                    // Populate fields
-                    const amount = data.amount || 0;
-                    const currency = data.currency || 'USD';
-                    amountValue.textContent = `$${parseFloat(amount).toFixed(2)}`;
-                    invoiceId.textContent = chargeId.substring(0, 12).toUpperCase();
-                    lightningInvoice.textContent = data.lightning_invoice || "—";
-                    onchainAddress.textContent = data.address || "—";
-
-                    // Generate QR code from Lightning invoice URI
-                    if (data.uri) {
-                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.uri)}`;
-                        qrCode.src = qrUrl;
-                    }
-
-                    // Calculate expiration time
-                    const expiresDate = new Date(Date.now() + timeRemaining * 1000);
-                    expiresAt.textContent = expiresDate.toLocaleString();
-
-                    // Setup copy buttons
-                    document.getElementById("copyLightning").onclick = () => copyToClipboard(data.lightning_invoice);
-                    document.getElementById("copyOnchain").onclick = () => copyToClipboard(data.address);
-
-                    // Start timer and polling
-                    startTimer();
-                    startPaymentPolling();
-                } else {
-                    statusText.textContent = "Failed to load payment";
+                if (!chargeData) {
+                    statusText.textContent = "No payment data received";
+                    return;
                 }
+
+                console.log(`✅ Using passed charge data`);
+                timeRemaining = chargeData.ttl || 3600;
+
+                // Populate fields from passed data (no API call needed)
+                const amount = chargeData.amount || 0;
+                const currency = chargeData.currency || 'USD';
+                amountValue.textContent = `$${parseFloat(amount).toFixed(2)}`;
+                invoiceId.textContent = chargeId.substring(0, 12).toUpperCase();
+                lightningInvoice.textContent = chargeData.lightning_invoice || "—";
+                onchainAddress.textContent = chargeData.address || "—";
+
+                // Generate QR code from Lightning invoice URI
+                if (chargeData.uri) {
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(chargeData.uri)}`;
+                    qrCode.src = qrUrl;
+                }
+
+                // Calculate expiration time
+                const expiresDate = new Date(Date.now() + timeRemaining * 1000);
+                expiresAt.textContent = expiresDate.toLocaleString();
+
+                // Setup copy buttons
+                document.getElementById("copyLightning").onclick = () => copyToClipboard(chargeData.lightning_invoice);
+                document.getElementById("copyOnchain").onclick = () => copyToClipboard(chargeData.address);
+
+                // Start timer and polling
+                startTimer();
+                startPaymentPolling();
             } catch (error) {
                 console.error("Init error:", error);
                 statusText.textContent = "Error loading payment";
