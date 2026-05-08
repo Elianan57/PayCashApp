@@ -340,11 +340,104 @@
             margin-left: 8px;
         }
 
-        /* Responsive */
-        @media (max-height: 800px) {
-            .phone-frame {
-                height: 90vh;
-                width: calc(90vh * 0.48);
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 24px 16px 16px 16px;
+            }
+
+            .profile-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .app-name {
+                font-size: 22px;
+            }
+
+            .payment-card {
+                padding: 20px 16px;
+            }
+
+            .section-label {
+                font-size: 9px;
+                margin-bottom: 8px;
+            }
+
+            .countdown {
+                font-size: 28px;
+                margin-bottom: 16px;
+            }
+
+            .amount-value {
+                font-size: 36px;
+            }
+
+            .scan-badge {
+                margin-bottom: 12px;
+                font-size: 10px;
+            }
+
+            .qr-container {
+                width: 160px;
+                height: 160px;
+                margin-bottom: 16px;
+            }
+
+            .detail-row {
+                padding: 12px 0;
+                font-size: 13px;
+            }
+
+            .detail-label {
+                font-size: 12px;
+            }
+
+            .detail-value {
+                font-size: 13px;
+            }
+
+            .lightning-address {
+                font-size: 10px;
+            }
+
+            .copy-btn {
+                padding: 3px 8px;
+                font-size: 9px;
+            }
+
+            .status-footer {
+                padding: 20px 16px;
+            }
+
+            .status-text {
+                font-size: 12px;
+            }
+
+            .bottom-action {
+                padding: 16px;
+            }
+
+            .pay-button {
+                padding: 12px;
+                font-size: 14px;
+                border-radius: 20px;
+            }
+
+            .cash-logo-small {
+                width: 20px;
+                height: 20px;
+                font-size: 12px;
+            }
+
+            .pending-tag {
+                font-size: 8px;
+                padding: 2px 6px;
+                margin-left: 6px;
             }
         }
     </style>
@@ -477,7 +570,18 @@
                 }
 
                 console.log(`✅ Using passed charge data`);
-                timeRemaining = chargeData.ttl || 3600;
+
+                // Calculate remaining time from expiration timestamp
+                if (chargeData.expires_at) {
+                    const expirationTime = new Date(chargeData.expires_at).getTime();
+                    const nowTime = Date.now();
+                    timeRemaining = Math.max(0, Math.floor((expirationTime - nowTime) / 1000));
+                    expiresAt.textContent = new Date(expirationTime).toLocaleString();
+                } else {
+                    timeRemaining = chargeData.ttl || 3600;
+                    const expiresDate = new Date(Date.now() + timeRemaining * 1000);
+                    expiresAt.textContent = expiresDate.toLocaleString();
+                }
 
                 // Populate fields from passed data (no API call needed)
                 const amount = chargeData.amount || 0;
@@ -502,10 +606,6 @@
                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(cashAppLink)}`;
                     qrCode.src = qrUrl;
                 }
-
-                // Calculate expiration time
-                const expiresDate = new Date(Date.now() + timeRemaining * 1000);
-                expiresAt.textContent = expiresDate.toLocaleString();
 
                 // Setup copy buttons
                 document.getElementById("copyLightning").onclick = function() {
