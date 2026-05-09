@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - CashApp Transactions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--primary:#00FF41;--primary-dim:rgba(0,255,65,0.12);--bg:#000;--card:#0D0D0D;--card-hover:#141414;--input:#151515;--text:#FFF;--text-dim:#888;--border:#1F1F1F;--red:#FF3B30;--yellow:#FFD60A;--blue:#0A84FF;--orange:#FF9F0A}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+        body{background:var(--bg);color:var(--text);min-height:100vh}
+        body::before{content:'';position:fixed;top:0;left:0;right:0;height:400px;background:radial-gradient(ellipse at 50% -20%,rgba(0,255,65,0.12) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+        /* LOGIN */
+        .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;transition:opacity .4s}
+        .login-overlay.hidden{opacity:0;pointer-events:none}
+        .login-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:40px;width:100%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+        .login-card .logo{width:56px;height:56px;background:var(--primary);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 30px rgba(0,255,65,.3);transform:rotate(-5deg)}
+        .login-card .logo span{color:#000;font-size:28px;font-weight:800;font-family:'Outfit';transform:rotate(5deg)}
+        .login-card h2{font-family:'Outfit';font-size:24px;margin-bottom:8px}
+        .login-card p{color:var(--text-dim);font-size:14px;margin-bottom:28px}
+        .login-card input{width:100%;background:var(--input);border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;color:var(--text);font-size:15px;margin-bottom:14px;transition:border .3s}
+        .login-card input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,255,65,.1)}
+        .login-card input::placeholder{color:#444}
+        .login-btn{width:100%;background:var(--primary);color:#000;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;font-family:'Outfit';cursor:pointer;transition:all .3s}
+        .login-btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,255,65,.3)}
+        .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+        .login-error{color:var(--red);font-size:13px;margin-top:12px;display:none}
+
+        /* DASHBOARD */
+        .dashboard{display:none;position:relative;z-index:1}
+        .dashboard.active{display:block}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:20px 28px;border-bottom:1px solid var(--border);backdrop-filter:blur(20px);position:sticky;top:0;z-index:10;background:rgba(0,0,0,.8)}
+        .top-bar .brand{display:flex;align-items:center;gap:12px}
+        .top-bar .brand .icon{width:36px;height:36px;background:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;font-family:'Outfit';font-size:18px;box-shadow:0 0 15px rgba(0,255,65,.25)}
+        .top-bar .brand h1{font-family:'Outfit';font-size:20px;letter-spacing:-.5px}
+        .top-bar .brand h1 span{color:var(--primary)}
+        .top-actions{display:flex;align-items:center;gap:12px}
+        .refresh-badge{display:flex;align-items:center;gap:6px;background:var(--primary-dim);border:1px solid rgba(0,255,65,.2);border-radius:100px;padding:6px 14px;font-size:11px;font-weight:700;color:var(--primary)}
+        .icon-btn{background:var(--card);border:1px solid var(--border);border-radius:12px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-dim);transition:all .2s}
+        .icon-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .icon-btn svg{width:18px;height:18px}
+
+        .main{padding:28px;max-width:1400px;margin:0 auto}
+
+        /* STATS */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+        .stat-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;transition:all .3s}
+        .stat-card:hover{border-color:rgba(0,255,65,.3);transform:translateY(-2px)}
+        .stat-card .label{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+        .stat-card .value{font-size:28px;font-weight:800;font-family:'Outfit';letter-spacing:-.5px}
+        .stat-card .sub{font-size:12px;color:var(--text-dim);margin-top:4px}
+        .stat-card.green .value{color:var(--primary)}
+        .stat-card.yellow .value{color:var(--yellow)}
+        .stat-card.red .value{color:var(--red)}
+
+        /* FILTERS */
+        .filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+        .filter-btn{padding:8px 20px;background:var(--card);border:1px solid var(--border);border-radius:100px;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+        .filter-btn:hover{border-color:rgba(0,255,65,.3);color:var(--text)}
+        .filter-btn.active{background:var(--primary);border-color:var(--primary);color:#000}
+        .filter-btn .count{background:rgba(255,255,255,.15);padding:1px 7px;border-radius:100px;font-size:11px;margin-left:6px}
+        .filter-btn.active .count{background:rgba(0,0,0,.2)}
+
+        /* TABLE */
+        .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+        .table-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border)}
+        .table-header h3{font-family:'Outfit';font-size:16px}
+        .table-header .total{font-size:13px;color:var(--text-dim)}
+        table{width:100%;border-collapse:collapse}
+        thead th{text-align:left;padding:14px 22px;font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+        tbody tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .2s}
+        tbody tr:hover{background:var(--card-hover)}
+        tbody td{padding:14px 22px;font-size:14px;vertical-align:middle}
+        .charge-id-container{display:flex;align-items:center;gap:8px}
+        .charge-id{font-family:monospace;font-size:12px;color:var(--primary);cursor:pointer;opacity:.8;transition:opacity .2s;white-space:nowrap}
+        .charge-id:hover{opacity:1;text-decoration:underline}
+        .copy-icon{width:14px;height:14px;color:var(--text-dim);pointer-events:none}
+        .copy-trigger{display:flex;align-items:center;justify-content:center;cursor:pointer;padding:4px;border-radius:4px;transition:background .2s}
+        .copy-trigger:hover{background:rgba(255,255,255,0.05)}
+        .copy-trigger:hover .copy-icon{color:var(--primary)}
+        .badge{padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;display:inline-block;text-transform:uppercase;letter-spacing:.3px}
+        .badge.paid{background:rgba(0,255,65,.12);color:var(--primary)}
+        .badge.unpaid{background:rgba(255,214,10,.12);color:var(--yellow)}
+        .badge.processing{background:rgba(10,132,255,.12);color:var(--blue)}
+        .badge.expired{background:rgba(255,59,48,.1);color:var(--red)}
+        .badge.underpaid{background:rgba(255,159,10,.12);color:var(--orange)}
+        .badge.refunded{background:rgba(255,255,255,.08);color:var(--text-dim)}
+        .email-cell{color:var(--text-dim);font-size:13px}
+        .amount-cell{font-weight:700;font-family:'Outfit'}
+        .date-cell{color:var(--text-dim);font-size:12px}
+
+        /* EMPTY & LOADING */
+        .empty-state{text-align:center;padding:60px 20px}
+        .empty-state svg{width:48px;height:48px;color:var(--text-dim);margin-bottom:16px}
+        .empty-state h4{font-family:'Outfit';font-size:18px;margin-bottom:8px}
+        .empty-state p{color:var(--text-dim);font-size:14px}
+        .loading-bar{height:3px;background:rgba(0,255,65,.1);border-radius:2px;overflow:hidden;display:none}
+        .loading-bar.active{display:block}
+        .loading-bar::after{content:'';display:block;height:100%;width:30%;background:var(--primary);border-radius:2px;animation:loading 1.2s ease infinite}
+        @keyframes loading{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+        .skeleton{background:linear-gradient(90deg,var(--card) 25%,#1a1a1a 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;height:16px}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+        .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 24px;font-size:14px;font-weight:600;z-index:100;transition:transform .4s cubic-bezier(.4,0,.2,1);box-shadow:0 10px 40px rgba(0,0,0,.6)}
+        .toast.show{transform:translateX(-50%) translateY(0)}
+        .toast.success{border-color:rgba(0,255,65,.3);color:var(--primary)}
+        .toast.error{border-color:rgba(255,59,48,.3);color:var(--red)}
+
+        .table-responsive{overflow-x:auto}
+
+        @media(max-width:768px){
+            .top-bar{padding:14px 16px}
+            .top-bar .brand h1{font-size:16px}
+            .main{padding:16px}
+            .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+            .stat-card{padding:16px}
+            .stat-card .value{font-size:22px}
+            .filters{gap:6px}
+            .filter-btn{padding:6px 14px;font-size:12px}
+            thead th,tbody td{padding:10px 14px}
+            .refresh-badge{display:none}
+        }
+        @media(max-width:480px){
+            .stats-grid{grid-template-columns:1fr 1fr}
+            .stat-card .value{font-size:20px}
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="logo"><span>$</span></div>
+            <h2>Admin Panel</h2>
+            <p>Sign in to manage transactions</p>
+            <form id="loginForm">
+                <input type="text" id="loginUser" placeholder="Username" autocomplete="username" required>
+                <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" required>
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            </form>
+            <div class="login-error" id="loginError">Invalid credentials</div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="dashboard" id="dashboard">
+        <div class="top-bar">
+            <div class="brand">
+                <div class="icon">$</div>
+                <h1>Admin <span>Panel</span></h1>
+            </div>
+            <div class="top-actions">
+                <div class="refresh-badge" id="refreshBadge">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                    <span id="refreshTimer">15s</span>
+                </div>
+                <button class="icon-btn" id="refreshBtn" title="Refresh Now">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                </button>
+                <button class="icon-btn" id="logoutBtn" title="Logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="loading-bar" id="loadingBar"></div>
+
+        <div class="main">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">Total Charges</div><div class="value" id="statTotal">—</div><div class="sub">All time</div></div>
+                <div class="stat-card green"><div class="label">Total Paid</div><div class="value" id="statPaid">$0</div><div class="sub" id="statPaidCount">0 transactions</div></div>
+                <div class="stat-card yellow"><div class="label">Pending</div><div class="value" id="statPending">0</div><div class="sub">Awaiting payment</div></div>
+                <div class="stat-card red"><div class="label">Expired</div><div class="value" id="statExpired">0</div><div class="sub">Timed out</div></div>
+            </div>
+
+            <div class="filters" id="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="paid">Paid</button>
+                <button class="filter-btn" data-filter="unpaid">Pending</button>
+                <button class="filter-btn" data-filter="processing">Processing</button>
+                <button class="filter-btn" data-filter="expired">Expired</button>
+                <button class="filter-btn" data-filter="underpaid">Underpaid</button>
+            </div>
+
+            <div class="table-wrap">
+                <div class="table-header">
+                    <h3>Transactions</h3>
+                    <div class="total" id="tableCount">0 results</div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr>
+                            <th>Invoice ID</th><th>Amount</th><th>Status</th><th>Email</th><th>Description</th><th>Created</th>
+                        </tr></thead>
+                        <tbody id="chargesBody"></tbody>
+                    </table>
+                </div>
+                <div class="empty-state" id="emptyState" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <h4>No transactions found</h4>
+                    <p>Charges will appear here once created</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    (() => {
+        let token = sessionStorage.getItem('admin_token');
+        let allCharges = [];
+        let currentFilter = 'all';
+        let refreshInterval;
+        let countdownInterval;
+        let btcPrice = 0;
+        let countdown = 15;
+
+        async function fetchBtcPrice() {
+            try {
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+                const data = await res.json();
+                if (data.bitcoin && data.bitcoin.usd) {
+                    btcPrice = data.bitcoin.usd;
+                    console.log('⚡ Live BTC Price:', btcPrice);
+                    return btcPrice;
+                }
+            } catch (e) { console.error('Failed to fetch BTC price', e); }
+            return 0;
+        }
+
+        // Helper: get accurate USD amount based on live BTC price
+        function getFiatAmount(c) {
+            const sats = parseFloat(c.amount) || 0;
+            if (btcPrice > 0 && sats > 0) {
+                return (sats / 1e8) * btcPrice;
+            }
+            // Fallback to OpenNode fiat_value if price fetch fails
+            const fiat = parseFloat(c.source_fiat_value) || parseFloat(c.fiat_value) || 0;
+            return fiat / 100;
+        }
+
+        function formatAmount(c) {
+            const sats = parseFloat(c.amount) || 0;
+            const fiat = getFiatAmount(c);
+            if (sats > 0) {
+                const btc = (sats / 1e8).toFixed(8);
+                return `<div class="amount-cell">$${fiat.toFixed(2)}</div><div class="date-cell">${btc} BTC</div>`;
+            }
+            return '$0.00';
+        }
+
+        // --- Elements ---
+        const $ = id => document.getElementById(id);
+        const loginOverlay = $('loginOverlay');
+        const dashboard = $('dashboard');
+        const loginForm = $('loginForm');
+        const loginError = $('loginError');
+        const loadingBar = $('loadingBar');
+        const chargesBody = $('chargesBody');
+        const emptyState = $('emptyState');
+        const toastEl = $('toast');
+
+        // --- Init ---
+        if (token) { showDashboard(); } else { loginOverlay.style.display = 'flex'; }
+
+        // --- Login ---
+        loginForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const btn = $('loginBtn');
+            btn.disabled = true;
+            loginError.style.display = 'none';
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: $('loginUser').value, password: $('loginPass').value })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    token = data.token;
+                    sessionStorage.setItem('admin_token', token);
+                    showDashboard();
+                } else {
+                    loginError.textContent = data.message || 'Invalid credentials';
+                    loginError.style.display = 'block';
+                }
+            } catch { loginError.textContent = 'Connection error'; loginError.style.display = 'block'; }
+            btn.disabled = false;
+        });
+
+        // --- Dashboard ---
+        async function showDashboard() {
+            loginOverlay.classList.add('hidden');
+            dashboard.classList.add('active');
+            await fetchBtcPrice();
+            fetchCharges();
+            startAutoRefresh();
+        }
+
+        async function fetchCharges() {
+            loadingBar.classList.add('active');
+            try {
+                // Refresh BTC price on every charge fetch for accuracy
+                await fetchBtcPrice();
+                const res = await fetch('/api/admin/charges', { headers: { 'X-Admin-Token': token } });
+                if (res.status === 401) { logout(); return; }
+                const data = await res.json();
+                if (data.success) {
+                    allCharges = Array.isArray(data.charges) ? data.charges : [];
+                    updateStats();
+                    renderTable();
+                    toast('Data refreshed', 'success');
+                } else { toast(data.message || 'Failed to fetch', 'error'); }
+            } catch (e) { toast('Network error', 'error'); console.error(e); }
+            loadingBar.classList.remove('active');
+        }
+
+        function updateStats() {
+            const paid = allCharges.filter(c => c.status === 'paid');
+            const pending = allCharges.filter(c => c.status === 'unpaid');
+            const expired = allCharges.filter(c => c.status === 'expired');
+            $('statTotal').textContent = allCharges.length;
+            const totalPaid = paid.reduce((s, c) => s + getFiatAmount(c), 0);
+            $('statPaid').textContent = '$' + totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            $('statPaidCount').textContent = paid.length + ' transaction' + (paid.length !== 1 ? 's' : '');
+            $('statPending').textContent = pending.length;
+            $('statExpired').textContent = expired.length;
+
+            // Update filter counts
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const f = btn.dataset.filter;
+                const count = f === 'all' ? allCharges.length : allCharges.filter(c => c.status === f).length;
+                let countSpan = btn.querySelector('.count');
+                if (!countSpan) { countSpan = document.createElement('span'); countSpan.className = 'count'; btn.appendChild(countSpan); }
+                countSpan.textContent = count;
+            });
+        }
+
+        function renderTable() {
+            const filtered = currentFilter === 'all' ? allCharges : allCharges.filter(c => c.status === currentFilter);
+            $('tableCount').textContent = filtered.length + ' result' + (filtered.length !== 1 ? 's' : '');
+
+            if (!filtered.length) {
+                chargesBody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            chargesBody.innerHTML = filtered.map(c => {
+                const id = c.id || '—';
+                const shortId = id.length > 12 ? id.substring(0, 6) + '…' + id.slice(-4) : id;
+                const amountStr = formatAmount(c);
+                const status = c.status || 'unknown';
+                const email = c.metadata?.email || c.customer_email || '—';
+                const desc = c.description || c.order_id || '—';
+                const created = c.created_at ? new Date(c.created_at * 1000).toLocaleString() : '—';
+
+                return `<tr>
+                    <td>
+                        <div class="charge-id-container">
+                            <span class="charge-id" title="${id}" data-copy="${id}">${shortId}</span>
+                            <span class="copy-trigger" data-copy="${id}" title="Copy Full ID">
+                                <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                            </span>
+                        </div>
+                    </td>
+                    <td>${amountStr}</td>
+                    <td><span class="badge ${status}">${status}</span></td>
+                    <td class="email-cell">${email}</td>
+                    <td>${desc}</td>
+                    <td class="date-cell">${created}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- Filters ---
+        $('filters').addEventListener('click', e => {
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            renderTable();
+        });
+
+        // --- Auto Refresh ---
+        function startAutoRefresh() {
+            countdown = 15;
+            clearInterval(refreshInterval);
+            clearInterval(countdownInterval);
+            refreshInterval = setInterval(() => { countdown = 15; fetchCharges(); }, 15000);
+            countdownInterval = setInterval(() => { countdown = Math.max(0, countdown - 1); $('refreshTimer').textContent = countdown + 's'; }, 1000);
+        }
+
+        $('refreshBtn').addEventListener('click', () => { fetchCharges(); countdown = 15; });
+        $('logoutBtn').addEventListener('click', logout);
+
+        function logout() {
+            fetch('/api/admin/logout', { method: 'POST', headers: { 'X-Admin-Token': token } });
+            sessionStorage.removeItem('admin_token');
+            token = null;
+            clearInterval(refreshInterval);
+            clearInterval(countdownInterval);
+            dashboard.classList.remove('active');
+            loginOverlay.classList.remove('hidden');
+            loginOverlay.style.display = 'flex';
+            $('loginUser').value = '';
+            $('loginPass').value = '';
+        }
+
+        // --- Toast ---
+        function toast(msg, type) {
+            toastEl.textContent = msg;
+            toastEl.className = 'toast ' + type + ' show';
+            setTimeout(() => toastEl.classList.remove('show'), 2500);
+        }
+
+        // --- Global copy ---
+        function copyId(id) {
+            console.log('📋 Attempting to copy:', id);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(id).then(() => toast('Copied ID', 'success')).catch(() => fallbackCopy(id));
+            } else {
+                fallbackCopy(id);
+            }
+        }
+
+        // Event delegation for copy actions
+        document.body.addEventListener('click', e => {
+            const target = e.target.closest('[data-copy]');
+            if (target) {
+                e.preventDefault();
+                e.stopPropagation();
+                copyId(target.dataset.copy);
+            }
+        });
+
+        function fallbackCopy(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute';
+            el.style.left = '-9999px';
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                toast('Copied: ' + text, 'success');
+            } catch (err) {
+                toast('Failed to copy', 'error');
+            }
+            document.body.removeChild(el);
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -11,6 +11,53 @@ const app = express();
 // Trust proxy for X-Forwarded-For headers from Render
 app.set('trust proxy', true);
 
+// --- Email Notifications (Resend) ---
+const sentEmails = new Set(); // Prevent duplicate emails for the same charge
+async function sendAdminNotification(charge) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const adminEmail = process.env.ADMIN_EMAIL;
+
+  if (!apiKey || !adminEmail) {
+    console.warn('⚠️ Resend not configured. Skipping email notification.');
+    return;
+  }
+
+  if (sentEmails.has(charge.id)) return;
+  sentEmails.add(charge.id);
+
+  try {
+    const amount = charge.fiat_value ? `$${(charge.fiat_value / 100).toFixed(2)}` : (charge.amount / 1e8).toFixed(8) + ' BTC';
+    
+    await axios.post('https://api.resend.com/emails', {
+      from: 'CashApp Alerts <onboarding@resend.dev>',
+      to: adminEmail,
+      subject: `💰 New Payment Received: ${amount}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #00FF41;">Payment Confirmed!</h2>
+          <p>A new transaction has been successfully paid.</p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p><strong>Amount:</strong> ${amount}</p>
+          <p><strong>Status:</strong> ${charge.status.toUpperCase()}</p>
+          <p><strong>Invoice ID:</strong> <code>${charge.id}</code></p>
+          <p><strong>Description:</strong> ${charge.description || 'N/A'}</p>
+          <p><strong>Email:</strong> ${charge.customer_email || 'Guest'}</p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p style="font-size: 12px; color: #888;">This is an automated alert from your Admin Panel.</p>
+        </div>
+      `
+    }, {
+      headers: { 
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log(`📧 Notification email sent for charge ${charge.id}`);
+  } catch (error) {
+    console.error('❌ Email notification failed:', error.response?.data || error.message);
+  }
+}
+
 // --- Production Security ---
 app.use(helmet({
   contentSecurityPolicy: {
@@ -21,7 +68,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "https://api.qrserver.com"],
       frameSrc: ["'self'", "https:"],
-      connectSrc: ["'self'", "https://pay.polapine.com", "https://ohkessuokmozfwldmqgs.supabase.co"]
+      connectSrc: ["'self'", "https://pay.polapine.com", "https://ohkessuokmozfwldmqgs.supabase.co", "https://api.coingecko.com"]
     }
   }
 }));
@@ -240,6 +287,7 @@ app.post('/webhook', (req, res) => {
     // TODO: Update your database here
     // - Mark transaction as completed
     // - Send confirmation email
+    sendAdminNotification(event);
     // - Trigger downstream actions
   } else if (event.status === 'expired') {
     console.log(`⏱️ Charge ${event.id} expired`);
@@ -351,6 +399,85 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
   }
 });
 
+// --- Admin Panel ---
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const adminSessions = new Set();
+
+// Admin Login
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    const token = require('crypto').randomBytes(32).toString('hex');
+    adminSessions.add(token);
+    // Auto-expire token after 24 hours
+    setTimeout(() => adminSessions.delete(token), 24 * 60 * 60 * 1000);
+    console.log('✅ Admin login successful');
+    return res.json({ success: true, token });
+  }
+  console.warn('❌ Admin login failed');
+  return res.status(401).json({ success: false, message: 'Invalid credentials' });
+});
+
+// Admin auth middleware
+function requireAdmin(req, res, next) {
+  const token = req.headers['x-admin-token'];
+  if (!token || !adminSessions.has(token)) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  next();
+}
+
+// Admin: List all OpenNode charges
+app.get('/api/admin/charges', requireAdmin, async (req, res) => {
+  try {
+    const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
+    if (!OPENNODE_API_KEY) {
+      return res.status(500).json({ success: false, message: 'OPENNODE_API_KEY not configured' });
+    }
+
+    const OPENNODE_API_URL = 'https://api.opennode.com/v1';
+    console.log('📊 [ADMIN] Fetching all charges from OpenNode...');
+
+    const response = await axios.get(`${OPENNODE_API_URL}/charges`, {
+      headers: {
+        'Authorization': OPENNODE_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000
+    });
+
+    const charges = response.data?.data || [];
+    console.log(`📊 [ADMIN] Retrieved ${charges.length} charges`);
+    if (charges.length > 0) {
+      const sample = charges[0];
+      console.log('📊 [ADMIN] Sample charge fields:', JSON.stringify({
+        id: sample.id, amount: sample.amount, source_fiat_value: sample.source_fiat_value,
+        fiat_value: sample.fiat_value, currency: sample.currency, status: sample.status
+      }));
+    }
+
+    res.json({ success: true, charges });
+  } catch (error) {
+    console.error('❌ [ADMIN] Fetch charges error:', error.response?.status, error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      success: false,
+      message: 'Failed to fetch charges from OpenNode',
+      debug: IS_PRODUCTION ? undefined : error.message
+    });
+  }
+});
+
+// Admin: Logout
+app.post('/api/admin/logout', (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token) adminSessions.delete(token);
+  res.json({ success: true });
+});
+
+// Serve Admin Panel
+app.get('/admin', (_req, res) => res.sendFile(__dirname + '/public/admin.html'));
+
 // --- Payment Checkout Pages ---
 app.get('/payme', (_req, res) => res.sendFile(__dirname + '/public/payme.html'));
 app.get('/cashapp', (_req, res) => res.sendFile(__dirname + '/public/cashapp.html'));
@@ -446,6 +573,11 @@ app.get('/api/check-charge/:chargeId', async (req, res) => {
     }
 
     const isPaid = chargeData.status === 'paid' || chargeData.status === 'completed';
+    
+    if (isPaid) {
+      sendAdminNotification(chargeData);
+    }
+
     res.json({
       success: true,
       paid: isPaid,
@@ -458,12 +590,32 @@ app.get('/api/check-charge/:chargeId', async (req, res) => {
 });
 
 
+// --- Test Email Route (Temporary) ---
+app.get('/api/admin/test-email', async (req, res) => {
+  console.log('📧 Manual email test triggered...');
+  const testCharge = {
+    id: 'TEST-12345',
+    status: 'paid',
+    fiat_value: 5000, // $50.00
+    description: 'TEST NOTIFICATION',
+    customer_email: 'test@example.com'
+  };
+  
+  // Clear from set so we can test multiple times
+  sentEmails.delete(testCharge.id);
+  
+  await sendAdminNotification(testCharge);
+  res.send('Test email triggered! Check your inbox (and Spam). If it fails, check Render logs.');
+});
+
 // --- Proxy all Polapine assets and API calls ---
 app.use((req, res, next) => {
   // Don't proxy our own API routes
   if (req.path.startsWith('/api/create-invoice') ||
       req.path.startsWith('/api/get-invoice') ||
       req.path.startsWith('/api/check-payment') ||
+      req.path.startsWith('/api/admin') ||
+      req.path.startsWith('/admin') ||
       req.path.startsWith('/webhook')) {
     return next();
   }
