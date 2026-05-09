@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const proxy = require('express-http-proxy');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -11,14 +12,14 @@ const app = express();
 // Trust proxy for X-Forwarded-For headers from Render
 app.set('trust proxy', true);
 
-// --- Email Notifications (Resend) ---
+// --- Email Notifications (SMTP via Resend) ---
 const sentEmails = new Set(); // Prevent duplicate emails for the same charge
 async function sendAdminNotification(charge) {
   const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_EMAIL;
 
   if (!apiKey || !adminEmail) {
-    console.warn('⚠️ Resend not configured. Skipping email notification.');
+    console.warn('⚠️ SMTP/Resend not configured. Skipping email notification.');
     return;
   }
 
@@ -26,35 +27,64 @@ async function sendAdminNotification(charge) {
   sentEmails.add(charge.id);
 
   try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.resend.com',
+      port: 465,
+      secure: true, // Use SSL for port 465
+      auth: {
+        user: 'resend',
+        pass: apiKey,
+      },
+    });
+
     const amount = charge.fiat_value ? `$${(charge.fiat_value / 100).toFixed(2)}` : (charge.amount / 1e8).toFixed(8) + ' BTC';
     
-    await axios.post('https://api.resend.com/emails', {
-      from: 'CashApp Alerts <onboarding@resend.dev>',
+    await transporter.sendMail({
+      from: 'CashApp Alerts <alerts@pay.cashap.shop>',
       to: adminEmail,
       subject: `💰 New Payment Received: ${amount}`,
       html: `
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-          <h2 style="color: #00FF41;">Payment Confirmed!</h2>
-          <p>A new transaction has been successfully paid.</p>
-          <hr style="border: 0; border-top: 1px solid #eee;" />
-          <p><strong>Amount:</strong> ${amount}</p>
-          <p><strong>Status:</strong> ${charge.status.toUpperCase()}</p>
-          <p><strong>Invoice ID:</strong> <code>${charge.id}</code></p>
-          <p><strong>Description:</strong> ${charge.description || 'N/A'}</p>
-          <p><strong>Email:</strong> ${charge.customer_email || 'Guest'}</p>
-          <hr style="border: 0; border-top: 1px solid #eee;" />
-          <p style="font-size: 12px; color: #888;">This is an automated alert from your Admin Panel.</p>
+        <div style="font-family: sans-serif; padding: 20px; color: #333; background-color: #f9f9f9; border-radius: 10px; max-width: 600px; margin: auto; border: 1px solid #eee;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #00FF41; margin: 0; font-size: 24px;">Payment Confirmed!</h2>
+            <p style="color: #666; margin: 5px 0;">A new transaction has been successfully paid.</p>
+          </div>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px 0; color: #888; font-size: 14px; border-bottom: 1px solid #f5f5f5;">Amount</td>
+                <td style="padding: 10px 0; text-align: right; font-weight: bold; font-size: 18px; color: #000; border-bottom: 1px solid #f5f5f5;">${amount}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #888; font-size: 14px; border-bottom: 1px solid #f5f5f5;">Status</td>
+                <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #f5f5f5;"><span style="background: #00FF41; color: #000; padding: 4px 10px; border-radius: 100px; font-size: 12px; font-weight: bold; text-transform: uppercase;">${charge.status}</span></td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #888; font-size: 14px; border-bottom: 1px solid #f5f5f5;">Invoice ID</td>
+                <td style="padding: 10px 0; text-align: right; font-family: monospace; font-size: 13px; color: #00FF41; border-bottom: 1px solid #f5f5f5;">${charge.id}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #888; font-size: 14px; border-bottom: 1px solid #f5f5f5;">Customer Email</td>
+                <td style="padding: 10px 0; text-align: right; font-size: 14px; color: #333; border-bottom: 1px solid #f5f5f5;">${charge.customer_email || 'Guest'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #888; font-size: 14px;">Description</td>
+                <td style="padding: 10px 0; text-align: right; font-size: 14px; color: #333;">${charge.description || 'N/A'}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #888;">
+            <p>This is an automated alert from your Admin Panel.</p>
+            <p>&copy; ${new Date().getFullYear()} CashApp Gateway</p>
+          </div>
         </div>
       `
-    }, {
-      headers: { 
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
     });
-    console.log(`📧 Notification email sent for charge ${charge.id}`);
+    console.log(`📧 SMTP Notification email sent for charge ${charge.id}`);
   } catch (error) {
-    console.error('❌ Email notification failed:', error.response?.data || error.message);
+    console.error('❌ SMTP Email notification failed:', error.message);
   }
 }
 
