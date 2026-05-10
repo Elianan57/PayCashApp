@@ -4,7 +4,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const proxy = require('express-http-proxy');
-const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -12,14 +11,15 @@ const app = express();
 // Trust proxy for X-Forwarded-For headers from Render
 app.set('trust proxy', true);
 
-// --- Email Notifications (SMTP via Resend) ---
+// --- Email Notifications (Resend HTTP API) ---
 const sentEmails = new Set(); // Prevent duplicate emails for the same charge
+
 async function sendAdminNotification(charge) {
   const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_EMAIL;
 
   if (!apiKey || !adminEmail) {
-    console.warn('⚠️ SMTP/Resend not configured. Skipping email notification.');
+    console.warn('⚠️ Resend not configured. Skipping email notification.');
     return;
   }
 
@@ -27,21 +27,11 @@ async function sendAdminNotification(charge) {
   sentEmails.add(charge.id);
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.resend.com',
-      port: 465,
-      secure: true, // Use SSL for port 465
-      auth: {
-        user: 'resend',
-        pass: apiKey,
-      },
-    });
-
     const amount = charge.fiat_value ? `$${(charge.fiat_value / 100).toFixed(2)}` : (charge.amount / 1e8).toFixed(8) + ' BTC';
     
-    await transporter.sendMail({
-      from: 'CashApp Alerts <alerts@pay.cashap.shop>',
-      to: adminEmail,
+    const payload = {
+      from: 'CashApp Alerts <onboarding@resend.dev>', // MUST use this for free accounts
+      to: [adminEmail],
       subject: `💰 New Payment Received: ${amount}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #333; background-color: #f9f9f9; border-radius: 10px; max-width: 600px; margin: auto; border: 1px solid #eee;">
@@ -81,10 +71,18 @@ async function sendAdminNotification(charge) {
           </div>
         </div>
       `
+    };
+
+    const response = await axios.post('https://api.resend.com/emails', payload, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
     });
-    console.log(`📧 SMTP Notification email sent for charge ${charge.id}`);
+
+    console.log(`📧 Notification email sent for charge ${charge.id} | Resend ID: ${response.data.id}`);
   } catch (error) {
-    console.error('❌ SMTP Email notification failed:', error.message);
+    console.error('❌ Email notification failed:', error.response?.data || error.message);
   }
 }
 
@@ -112,7 +110,7 @@ const apiLimiter = rateLimit({
   max: 1000, // Limit each IP to 1000 requests per windowMs
   message: { success: false, message: 'Too many requests, please try again later.' },
   skip: (req) => req.path === '/api/check-payment', // Skip rate limit for status checks
-  keyGenerator: (req) => req.ip // Use req.ip for proper proxy support
+  validate: { xForwardedForHeader: false } // Fix IPv6 warning
 });
 
 // Apply rate limiter to API routes

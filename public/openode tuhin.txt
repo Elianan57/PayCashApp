@@ -1,0 +1,17 @@
+Oppenode Sanbox ad8fb8c0-b00d-4085-9d7a-3881f51e541e
+
+OPENNODE_API_KEY: b43f29c0-1e5c-4321-adca-1d580cbc834b
+
+Ecom 3699a78a-e637-4a39-86df-e7236c2015a4
+
+
+
+
+
+
+I create html for pay invoice desing have plachodler for infno that willg rba form api details will palce there.
+
+
+So. There will data for the amount that user neter time rmianing scnaer qr code inoice and lgihting invocie and onchain fallback  also epxire dat time so th
+qr code url will be load form thishttps://cash.app/launch/lightning/[lighting invoice id will be place here] which load will show the qr on fronend 
+then on chian will neeed as it it grab form api. so now implmeent this 
