@@ -102,6 +102,7 @@ app.use(helmet({
 }));
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Added to support form-encoded webhooks
 app.use(express.static('public'));
 
 // Rate limiting to prevent abuse
@@ -282,45 +283,67 @@ app.post('/api/create-invoice-b', async (req, res) => {
 // --- Webhook Handling (OpenNode) ---
 app.post('/webhook', (req, res) => {
   const crypto = require('crypto');
-  const event = req.body;
+  
+  // OpenNode webhooks can be flat or nested under 'data'
+  // Support both just in case
+  const event = req.body.data || req.body;
   const receivedHash = req.headers['hashed_order'];
   const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY;
 
   console.log('🔔 [WEBHOOK] Received at', new Date().toISOString());
-  console.log('   Charge ID:', event.id);
-  console.log('   Status:', event.status);
-  console.log('   Amount:', event.amount, event.currency);
+  console.log('   Headers:', JSON.stringify(req.headers));
+  console.log('   Body Keys:', Object.keys(req.body));
+  
+  if (Object.keys(req.body).length === 0) {
+    console.warn('⚠️ [WEBHOOK] Empty body received. Check Content-Type parser.');
+  }
+
+  const chargeId = event.id || event.charge_id;
+  const status = event.status;
+  const amount = event.amount;
+  const currency = event.currency;
+
+  console.log('   Charge ID:', chargeId);
+  console.log('   Status:', status);
+  console.log('   Amount:', amount, currency);
 
   // Verify signature per OpenNode docs: hashed_order = HMAC-SHA256(charge_id, API_KEY)
-  if (event.id && receivedHash && OPENNODE_API_KEY) {
+  if (chargeId && receivedHash && OPENNODE_API_KEY) {
     const expectedHash = crypto
       .createHmac('sha256', OPENNODE_API_KEY)
-      .update(event.id)
+      .update(chargeId)
       .digest('hex');
 
     if (expectedHash !== receivedHash) {
       console.error('❌ Webhook signature mismatch');
+      console.error('   Expected:', expectedHash);
+      console.error('   Received:', receivedHash);
       return res.status(401).send('Invalid signature');
     }
     console.log('✅ Webhook signature verified');
   } else {
-    console.warn('⚠️ Could not verify signature (missing headers/key)');
+    console.warn('⚠️ Could not verify signature (missing headers/key/ID)');
+    console.warn('   Has ID:', !!chargeId, '| Has Hash:', !!receivedHash, '| Has API Key:', !!OPENNODE_API_KEY);
   }
 
   // Process the event
-  if (event.status === 'paid' || event.status === 'completed') {
-    console.log(`💰 Payment confirmed for charge ${event.id}`);
+  if (status === 'paid' || status === 'completed') {
+    console.log(`💰 Payment confirmed for charge ${chargeId}`);
     console.log(`   Email: ${event.customer_email}`);
-    console.log(`   Amount: ${event.amount} ${event.currency}`);
-    // TODO: Update your database here
-    // - Mark transaction as completed
-    // - Send confirmation email
-    sendAdminNotification(event);
-    // - Trigger downstream actions
-  } else if (event.status === 'expired') {
-    console.log(`⏱️ Charge ${event.id} expired`);
-  } else if (event.status === 'underpaid') {
-    console.log(`⚠️ Charge ${event.id} underpaid`);
+    console.log(`   Amount: ${amount} ${currency}`);
+    
+    // Send admin notification
+    // Normalize event object for the notification function
+    const chargeForEmail = {
+      ...event,
+      id: chargeId,
+      status: status
+    };
+    sendAdminNotification(chargeForEmail);
+  } else if (status === 'expired') {
+    console.log(`⏱️ Charge ${chargeId} expired`);
+  } else if (status === 'underpaid') {
+    console.log(`⚠️ Charge ${chargeId} underpaid`);
   }
 
   // Always return 200 quickly
