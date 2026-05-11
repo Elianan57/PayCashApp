@@ -4,16 +4,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const proxy = require('express-http-proxy');
-const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
-
-// Supabase client for fetching charge data
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://ohkessuokmozfwldmqgs.supabase.co',
-  process.env.SUPABASE_KEY || ''
-);
 
 // Trust proxy for X-Forwarded-For headers from Render
 app.set('trust proxy', true);
@@ -340,34 +333,27 @@ app.post('/webhook', async (req, res) => {
     console.log(`   Email: ${event.customer_email}`);
     console.log(`   Amount: ${amount} ${currency}`);
 
-    // Fetch original charge from Supabase to get correct USD amount
+    // Calculate USD amount from BTC
     let chargeForEmail = {
       ...event,
       id: chargeId,
       status: status
     };
 
-    try {
-      const { data: chargeData, error } = await supabase
-        .from('charges')
-        .select('*')
-        .eq('id', chargeId)
-        .single();
-
-      if (chargeData && !error) {
-        console.log(`✅ Found charge in Supabase - USD Amount: ${chargeData.fiat_value || chargeData.source_fiat_value}`);
-        chargeForEmail = {
-          ...chargeForEmail,
-          fiat_value: chargeData.fiat_value || chargeData.source_fiat_value,
-          source_fiat_value: chargeData.source_fiat_value,
-          description: chargeData.description,
-          customer_email: chargeData.customer_email || event.customer_email
-        };
-      } else {
-        console.warn(`⚠️ Could not fetch charge from Supabase:`, error?.message);
+    // If amount is in satoshis, convert to USD
+    if (currency === 'BTC' || !currency) {
+      try {
+        const priceRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { timeout: 5000 });
+        const btcPrice = priceRes.data?.bitcoin?.usd || 0;
+        if (btcPrice > 0 && amount) {
+          const sats = parseFloat(amount);
+          const usdAmount = (sats / 1e8) * btcPrice;
+          chargeForEmail.fiat_value = usdAmount;
+          console.log(`✅ Converted ${sats} sats to $${usdAmount.toFixed(2)} USD at $${btcPrice}/BTC`);
+        }
+      } catch (err) {
+        console.warn(`⚠️ Could not fetch BTC price:`, err.message);
       }
-    } catch (err) {
-      console.error(`⚠️ Error querying Supabase:`, err.message);
     }
 
     sendAdminNotification(chargeForEmail);
