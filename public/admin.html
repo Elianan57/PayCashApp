@@ -235,6 +235,8 @@
             if (btcPrice > 0 && sats > 0) {
                 return (sats / 1e8) * btcPrice;
             }
+            return 0;
+        }
 
         function formatAmount(c) {
             const sats = parseFloat(c.amount) || 0;
