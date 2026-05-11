@@ -215,6 +215,7 @@
         let countdownInterval;
         let btcPrice = 0;
         let countdown = 15;
+        let isSubmittingForPasswordSave = false;
 
         async function fetchBtcPrice() {
             try {
@@ -264,6 +265,10 @@
 
         // --- Login ---
         loginForm.addEventListener('submit', async e => {
+            if (isSubmittingForPasswordSave) {
+                e.preventDefault();
+                return;
+            }
             e.preventDefault();
             const btn = $('loginBtn');
             btn.disabled = true;
@@ -279,6 +284,8 @@
                     token = data.token;
                     sessionStorage.setItem('admin_token', token);
                     showDashboard();
+                    isSubmittingForPasswordSave = true;
+                    loginForm.submit();
                 } else {
                     loginError.textContent = data.message || 'Invalid credentials';
                     loginError.style.display = 'block';
