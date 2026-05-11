@@ -4,9 +4,16 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const proxy = require('express-http-proxy');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
+
+// Supabase client for fetching charge data
+const supabase = createClient(
+  process.env.SUPABASE_URL || 'https://ohkessuokmozfwldmqgs.supabase.co',
+  process.env.SUPABASE_KEY || ''
+);
 
 // Trust proxy for X-Forwarded-For headers from Render
 app.set('trust proxy', true);
@@ -282,7 +289,7 @@ app.post('/api/create-invoice-b', async (req, res) => {
 });
 
 // --- Webhook Handling (OpenNode) ---
-app.post('/webhook', (req, res) => {
+app.post('/webhook', async (req, res) => {
   const crypto = require('crypto');
   
   // OpenNode webhooks can be flat or nested under 'data'
@@ -332,14 +339,37 @@ app.post('/webhook', (req, res) => {
     console.log(`💰 Payment confirmed for charge ${chargeId}`);
     console.log(`   Email: ${event.customer_email}`);
     console.log(`   Amount: ${amount} ${currency}`);
-    
-    // Send admin notification
-    // Normalize event object for the notification function
-    const chargeForEmail = {
+
+    // Fetch original charge from Supabase to get correct USD amount
+    let chargeForEmail = {
       ...event,
       id: chargeId,
       status: status
     };
+
+    try {
+      const { data: chargeData, error } = await supabase
+        .from('charges')
+        .select('*')
+        .eq('id', chargeId)
+        .single();
+
+      if (chargeData && !error) {
+        console.log(`✅ Found charge in Supabase - USD Amount: ${chargeData.fiat_value || chargeData.source_fiat_value}`);
+        chargeForEmail = {
+          ...chargeForEmail,
+          fiat_value: chargeData.fiat_value || chargeData.source_fiat_value,
+          source_fiat_value: chargeData.source_fiat_value,
+          description: chargeData.description,
+          customer_email: chargeData.customer_email || event.customer_email
+        };
+      } else {
+        console.warn(`⚠️ Could not fetch charge from Supabase:`, error?.message);
+      }
+    } catch (err) {
+      console.error(`⚠️ Error querying Supabase:`, err.message);
+    }
+
     sendAdminNotification(chargeForEmail);
   } else if (status === 'expired') {
     console.log(`⏱️ Charge ${chargeId} expired`);
