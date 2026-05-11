@@ -27,7 +27,8 @@ async function sendAdminNotification(charge) {
   sentEmails.add(charge.id);
 
   try {
-    const amount = charge.fiat_value ? `$${(charge.fiat_value / 100).toFixed(2)}` : (charge.amount / 1e8).toFixed(8) + ' BTC';
+    const fiat = charge.fiat_value || charge.source_fiat_value;
+    const amount = fiat ? `$${parseFloat(fiat).toFixed(2)}` : (charge.amount / 1e8).toFixed(8) + ' BTC';
     
     const payload = {
       from: 'CashApp Alerts <onboarding@resend.dev>', // MUST use this for free accounts
@@ -647,7 +648,7 @@ app.get('/api/admin/test-email', async (req, res) => {
   const testCharge = {
     id: 'TEST-12345',
     status: 'paid',
-    fiat_value: 5000, // $50.00
+    fiat_value: 50.00, // $50.00
     description: 'TEST NOTIFICATION',
     customer_email: 'test@example.com'
   };

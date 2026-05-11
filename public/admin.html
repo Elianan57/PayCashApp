@@ -235,10 +235,6 @@
             if (btcPrice > 0 && sats > 0) {
                 return (sats / 1e8) * btcPrice;
             }
-            // Fallback to OpenNode fiat_value if price fetch fails
-            const fiat = parseFloat(c.source_fiat_value) || parseFloat(c.fiat_value) || 0;
-            return fiat / 100;
-        }
 
         function formatAmount(c) {
             const sats = parseFloat(c.amount) || 0;
